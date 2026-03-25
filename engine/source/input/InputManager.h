@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 /**
 * This Class its owned and controlled by the Engine only
 */
