@@ -1,6 +1,8 @@
 #include <Game.h>
 #include <GLFW/glfw3.h>
 #include "eng.h"
+#include <fstream>
+#include <streambuf>
 using eng::Engine;
 
 bool Game::Init()
@@ -8,52 +10,15 @@ bool Game::Init()
     //////////////////////////////////////////////////////////////
     // Shader sources
     //////////////////////////////////////////////////////////////
-    std::string vertexShaderSource = R"(
-        #version 330 core
-        
-        uniform vec3 uOffSet;
 
-        uniform mat4 projectionMatrix;
-        uniform vec3 cameraPosition;
+    std::ifstream   vertexShaderFile("./shaders/solid_color.vert");
+    std::ifstream   fragmentShaderFile("./shaders/solid_color.frag");
 
-        layout (location = 0) in vec3 position;
-        layout (location = 1) in vec3 color;
-        
-        out vec3 colorUV;
+    if (!vertexShaderFile.is_open() || !fragmentShaderFile.is_open())
+        std::cerr << "ERROR: Failed to open shaders files!\n";
 
-        void main()
-        {
-            // This is a hardcoded rotation matrix we use to have the camera look slightly downward
-	        mat3 V = mat3(
-	        1.0, 0.0, 0.0,
-	        0.0, 0.97, 0.26,
-	        0.0, -0.26, 0.97);
-
-	        vec4 pos = vec4((V * position.xyz) - cameraPosition.xyz, 1);
-	        gl_Position = projectionMatrix * pos;
-
-            //gl_Position = vec4( position.x, position.y, position.z, 1.0);
-            //gl_Position = vec4( position.x + uOffSet.x , position.y + uOffSet.y, 0.0, 1.0);
-
-            colorUV = color;
-        }    
-
-    )";
-
-    std::string fragmentShaderSource = R"(
-        #version 330 core
-        
-        uniform vec4 uColor;
-        
-        in vec3 colorUV;
-        out vec4 FragColor;
-
-        void main()
-        {
-            FragColor = vec4(colorUV.r, colorUV.g, colorUV.b, 1.0);
-            //FragColor = vec4(uColor.r, uColor.g, uColor.b, 1.0);
-        }
-    )";
+    std::string     vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
+    std::string     fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
 
     // First time the GraphicsAPI gets instantiated
 
