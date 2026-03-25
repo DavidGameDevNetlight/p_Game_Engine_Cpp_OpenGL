@@ -3,6 +3,11 @@
 #include <string>
 #include <unordered_map>
 
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
+using namespace glm;
+
 using std::unordered_map;
 using std::string;
 
@@ -28,8 +33,11 @@ namespace eng
 		~ShaderProgram();
 		
 		void Bind() const;
-		void SetUniformFloat(const string& uniformName, float value);
-		
+		void SetUniformFloat(		const string& uniformName,	float	value);
+		void SetUniform3Float(		const string& uniformName,	vec3	value);
+		void SetProjectionMatrix(	const string& matrixName,	mat4	matrix);
+
+
 		/// <summary>
 		/// Checks if the uniform name is stored in cache, otherwise, adds it, and returns the location
 		/// </summary>

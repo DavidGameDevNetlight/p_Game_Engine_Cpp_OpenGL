@@ -50,10 +50,15 @@ set_property(TARGET glew PROPERTY FOLDER GLEW)
 # Link all thirdparty libraries, links the app with GLFW and static GLEW (hence glew_s)
 target_link_libraries(${PROJECT_NAME} glfw glew_s)
 
+# --------------------------------------------------------------------- Add GLM Library
+add_subdirectory(thirdparty/glm-1.0.1)
+include_directories(thirdparty/glm-1.0.1)
+
 # Engine exports its include path itself
 target_include_directories(Engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/source
         ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew/include
         ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw-3.4/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glm-1.0.1
 )

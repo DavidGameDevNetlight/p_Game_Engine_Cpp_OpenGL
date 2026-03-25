@@ -23,6 +23,20 @@ namespace eng
 		glUniform1f(uniformLocation, value);
 	}
 
+	void  ShaderProgram::SetUniform3Float(const string& uniformName, vec3 vector)
+	{
+		auto uniformLocation = GetUniformLocation(uniformName);
+		glUniform3f(uniformLocation, vector.x, vector.y, vector.z);
+	}
+
+
+	void ShaderProgram::SetProjectionMatrix(const string& matrixName, mat4 matrix)
+	{
+		auto uniformLocation = GetUniformLocation(matrixName);
+		glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0].x);
+	}
+
+
 	GLint ShaderProgram::GetUniformLocation(const string& uniformName)
 	{
 		auto iterator = m_uniformLocationCache.find(uniformName);
