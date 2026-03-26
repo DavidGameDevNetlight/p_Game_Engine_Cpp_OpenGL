@@ -135,6 +135,7 @@ namespace eng
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 		glewExperimental = GL_TRUE;
 #endif
+
 		// Create a window and validate
 		m_window = glfwCreateWindow( width, height, title, nullptr, nullptr);
 		if (m_window == nullptr)
@@ -166,6 +167,12 @@ namespace eng
 		auto now = std::chrono::high_resolution_clock::now();
 		timeToUpdate = std::chrono::duration<float>(now - m_lastTimePoint).count();
 		m_lastTimePoint = now;
+		m_deltaTime = timeToUpdate;
+	}
+
+	float Engine::GetDeltaTime() const
+	{
+		return m_deltaTime;
 	}
 
 }

@@ -1,7 +1,10 @@
 #pragma once
-
 #include <cstddef>
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
 
+	using namespace glm;
 namespace eng
 {
 	class Mesh;
@@ -15,18 +18,46 @@ namespace eng
 		Material*	material	= nullptr;
 	};
 
+	//////////////////////////////////////////////////////////////
+	// Temporal public variables
+	//////////////////////////////////////////////////////////////
+	struct PerspectiveParams
+	{
+		float	fov;
+		int		width;
+		int		height;
+		float	nearPlane;
+		float	farPlane;
+	};
+
 	class RenderQueue
 	{
 	public:
 		
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		~RenderQueue();
 
 		// original const RenderComman& commandd
 		void Submit(const RenderCommand& command);
 		void Draw(GraphicsAPI& graphicsApi);
+
+		//////////////////////////////////////////////////////////////
+		// Temporal public variables
+		//////////////////////////////////////////////////////////////
+		vec3	worldUp				= vec3(0.0f, 1.0f, 0.0f);
+		ivec2	prevMouseCoords 	= { -1, -1 };
+		bool	isMouseDragging 	= false;
+		// Camera params
+		vec3	cameraPosition 		= vec3(15.0f, 15.0f, 15.0f);
+		vec3	cameraDirection		= vec3(-1.0f, -1.0f, -1.0f);
+		mat4	T					= mat4(1.0f);
+		mat4	R					= mat4(1.0f);
+
+		PerspectiveParams	pp		= { 45.0f, 1280, 720, 0.1f, 300.0f };
+		int 				old_w 	= 1280;
+		int 				old_h 	= 720;
 
 	private:
 		static const size_t RENDER_COMMANDS_SIZE = 100;

@@ -71,7 +71,7 @@ namespace eng
 		/// </summary>
 		void SetApplication(Application* app);	// ownership transfer
 
-
+		float GetDeltaTime() const;
 		//////////////////////////////////////////////////////////////
 		// Getters to main classes
 		//////////////////////////////////////////////////////////////
@@ -101,6 +101,12 @@ namespace eng
 		bool CreateWindow( const unsigned int width, const unsigned int height, const char* title);
 
 		void UpdateDeltaTime(float& timeToUpdate);
+
+		///////////////////////////////////////////////////////
+		// Time Features
+		///////////////////////////////////////////////////////
+		float m_deltaTime		= 0.0f;
+		float m_timeInSeconds	= 0.0f;
 	};
 
 }

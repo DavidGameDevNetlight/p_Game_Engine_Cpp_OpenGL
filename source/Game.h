@@ -2,6 +2,7 @@
 #include <eng.h>
 #include <iostream>
 
+
 class Game : public eng::Application
 {
 public:
@@ -12,6 +13,8 @@ public:
 	bool Init() 					override;
 	void Update(float deltaTime) 	override;
 	void Destroy() 					override;
+
+
 
 private:
 	eng::Material	m_material;
