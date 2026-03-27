@@ -39,6 +39,9 @@ namespace eng
 		/// </summary>
 		~RenderQueue();
 
+		// TODO: Temporarily adding an Init for Debug meshes
+		void Init();
+
 		// original const RenderComman& commandd
 		void Submit(const RenderCommand& command);
 		void Draw(GraphicsAPI& graphicsApi);

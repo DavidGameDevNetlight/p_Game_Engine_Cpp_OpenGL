@@ -39,6 +39,24 @@ namespace eng
 		if (!CreateWindow(width, height, "Profetics Engine"))
 			return false;
 
+		///////////////////////////////////////////////////////////////////////
+		// ImGUI
+		///////////////////////////////////////////////////////////////////////
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(m_window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+		ImGui_ImplOpenGL3_Init();
+		///////////////////////////////////////////////////////////////////////
+
+		// TODO added render queue init
+		GetRenderQueue().Init();
+
 		return m_app->Init();
 	};
 
@@ -57,7 +75,22 @@ namespace eng
 		{
 			// Handle user inputs
 			glfwPollEvents();
-			
+
+			///////////////////////////////////////////////////////////////////////
+			// ImGUI
+			///////////////////////////////////////////////////////////////////////
+			// Start the Dear ImGui frame
+			int value = 0;
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			ImGui::PushID("mag");
+			ImGui::Text("Camera setting");
+			ImGui::RadioButton("An option", &value, 0);
+			ImGui::PopID();
+			//ImGui::ShowDemoWindow(); // Show demo window! :)
+			///////////////////////////////////////////////////////////////////////
+
 			// Update game logic
 			UpdateDeltaTime(deltaTime);
 			m_app->Update(deltaTime);
@@ -67,6 +100,17 @@ namespace eng
 
 			m_renderQueue.Draw(m_graphicsApi);
 			
+
+			///////////////////////////////////////////////////////////////////////
+			// ImGUI
+			///////////////////////////////////////////////////////////////////////
+			// Rendering
+			// (Your code clears your framebuffer, renders your other stuff etc.)
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			// (Your code calls glfwSwapBuffers() etc.)
+			///////////////////////////////////////////////////////////////////////
+
 			// Handle rendering
 			glfwSwapBuffers(m_window);
 
@@ -77,6 +121,14 @@ namespace eng
 	{
 		if (m_app)
 		{
+			///////////////////////////////////////////////////////////////////////
+			// ImGUI
+			///////////////////////////////////////////////////////////////////////
+			ImGui_ImplOpenGL3_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+			ImGui::DestroyContext();
+			///////////////////////////////////////////////////////////////////////
+
 			m_app->Destroy(); // logical clean up only
 			glfwTerminate();
 			m_window = nullptr;

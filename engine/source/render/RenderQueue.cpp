@@ -9,7 +9,9 @@
 #include <glm/gtx/transform.hpp>
 
 #include "Engine.h"
+#include <fstream>
 #include "GLFW/glfw3.h"
+#include "renderHelper/Model.h"
 using namespace glm;
 
 namespace eng
@@ -43,7 +45,41 @@ namespace eng
 
 		m_commandsCount++;
 	}
-	//vec3 cameraPosition	= vec3(0.f,10.f,0.f);
+
+	void RenderGUI()
+	{
+
+	}
+
+	rederhelper::Model* sphereModel = nullptr;
+	mat4 sphereModelMatrix(	1.0f, 0.0f, 0.0f, 0.0f, // x
+							0.0f, 1.0f, 0.0f, 0.0f, // y
+							0.0f, 0.0f, 1.0f, 0.0f, // z
+							1.0f, 5.0f, 1.0f, 1.0f); // translation
+
+	void RenderQueue::Init()
+	{
+		auto& graphicsApi = Engine::GetInstance().GetGraphicsAPI();
+
+		//////////////////////////////////////////////////////////////
+		// Shader sources for debugging
+		//////////////////////////////////////////////////////////////
+
+		std::ifstream   vertexShaderFile("./assets/debug_lambert_diffuse.vert");
+		std::ifstream   fragmentShaderFile("./assets/debug_lambert_diffuse.frag");
+
+		if (!vertexShaderFile.is_open() || !fragmentShaderFile.is_open())
+			std::cerr << "ERROR: Failed to open shaders files!\n";
+
+		std::string     vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
+		std::string     fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
+
+
+		eng::ShaderProgram* shaderProgram = graphicsApi.CreateShaderProgram(vertexShaderSource, fragmentShaderSource);
+		sphereModel = rederhelper::loadModelFromOBJ("./assets/sphere.obj");
+	}
+
+
 	void RenderQueue::Draw(GraphicsAPI& graphicsApi)
 	{
 		// TODO: Adding a 3D camera by setting up the projection matrix
@@ -51,14 +87,33 @@ namespace eng
 		const vec3	cameraRight		= normalize(cross(cameraDirection, worldUp));
 		const vec3	cameraUp		= normalize(cross(cameraRight, cameraDirection));
 
-		const mat3	cameraBaseVectorWorldSpace(cameraRight, cameraUp, -cameraDirection);
+		const mat3		cameraBaseVectorWorldSpace(cameraRight, cameraUp, -cameraDirection);
 		// This allows to rotate the vertices of models based on the camera
-		mat4 cameraRotation = transpose(cameraBaseVectorWorldSpace);
-		const float aspectRatio	= static_cast<float>(pp.width) / static_cast<float>(pp.height);
-		const mat4 projectionMatrix = perspective(radians(pp.fov), aspectRatio, pp.nearPlane, pp.farPlane);
+
+		const mat4		cameraRotation			= transpose(cameraBaseVectorWorldSpace);
+		const float		aspectRatio				= static_cast<float>(pp.width) / static_cast<float>(pp.height);
+
+		// The negative cameraPosition makes the camera back to the origin.
+		// The viewMatrix is in reverse order, we first translate back to the origin and then rotate
+		const mat4		viewMatrix				= cameraRotation * translate(-cameraPosition);
+		const mat4		projectionMatrix		= perspective(radians(pp.fov), aspectRatio, pp.nearPlane, pp.farPlane);
 
 		//////////////////////////////////////////////////////////////
-		// TODO: Updating camera poisiton
+		// TODO: Sphere
+		//////////////////////////////////////////////////////////////
+		GLint current_program = 0;
+		glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
+
+		const int mvploc	= glGetUniformLocation(current_program, "projectionMatrix");
+		const int mloc		= glGetUniformLocation(current_program, "modelMatrix");
+
+		const mat4 modelViewProjectionMatrix = projectionMatrix * viewMatrix * sphereModelMatrix;
+		glUniformMatrix4fv(mvploc, 1, false, &modelViewProjectionMatrix[0].x);
+		glUniformMatrix4fv(mloc, 1, false, &sphereModelMatrix[0].x);
+		rederhelper::render(sphereModel);
+
+		//////////////////////////////////////////////////////////////
+		// TODO: Updating camera position
 		//////////////////////////////////////////////////////////////
 
 		auto& inputManager = Engine::GetInstance().GetInputManager();
@@ -92,5 +147,14 @@ namespace eng
 
 		// original m_renderCommands.clear() to clean up the std::vector<RenderCommand>
 		m_commandsCount = 0;
+
+		ImGui::PushID("mag");
+		ImGui::Text("Camera setting");
+		ImGui::LabelText("Field of view", "%.2f", pp.fov);
+		ImGui::LabelText("Near plance", "%.2f", pp.nearPlane);
+		ImGui::LabelText("Far plane", "%.2f", pp.farPlane);
+		ImGui::LabelText("Viewport height", "%d", pp.height);
+		ImGui::LabelText("Viewport width", "%d", pp.width);
+		ImGui::PopID();
 	}
 }

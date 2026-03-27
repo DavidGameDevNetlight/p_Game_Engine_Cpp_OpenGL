@@ -11,8 +11,8 @@ bool Game::Init()
     // Shader sources
     //////////////////////////////////////////////////////////////
 
-    std::ifstream   vertexShaderFile("./shaders/solid_color.vert");
-    std::ifstream   fragmentShaderFile("./shaders/solid_color.frag");
+    std::ifstream   vertexShaderFile("./shaders/debug_lambert_diffuse.vert");
+    std::ifstream   fragmentShaderFile("./shaders/debug_lambert_diffuse.frag");
 
     if (!vertexShaderFile.is_open() || !fragmentShaderFile.is_open())
         std::cerr << "ERROR: Failed to open shaders files!\n";
