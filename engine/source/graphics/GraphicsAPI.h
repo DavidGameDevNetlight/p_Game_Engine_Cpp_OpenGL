@@ -12,6 +12,11 @@ namespace eng
 	class Material;
 	class Mesh;
 
+	enum ShaderType {
+		VERTEX,
+		FRAGMENT
+	};
+
 	/// <summary>
 	/// 
 	/// </summary>
@@ -54,7 +59,7 @@ namespace eng
 		void			DrawMesh(Mesh* mesh);
 
 	private:
-		bool			IsShaderCompilationSuccessful(const GLuint shader) const;
+		bool			IsShaderCompilationSuccessful(const GLuint shader, ShaderType type) const;
 		bool			IsProgramLinkingSuccessful(const GLuint program) const;
 		void			DeletePrograms(const GLuint vertShader, const GLuint fragShader, const GLuint shaderProgram);
 		void			DeletePrograms(const GLuint vertShader, const GLuint fragShader);

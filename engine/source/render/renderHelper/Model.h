@@ -7,8 +7,16 @@
 #include <GL/glew.h>
 
 
-namespace rederhelper
+namespace renderhelper
 {
+
+	enum debugColor
+	{
+		RED,
+		GREEN,
+		BLUE,
+		YELLOW
+	};
 
 	namespace file
 	{
@@ -18,6 +26,29 @@ namespace rederhelper
 		std::string file_extension(const std::string& file_name);
 		std::string change_extension(const std::string& file_name, const std::string& ext);
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	/// DebugDraws
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	void drawLineSegment(
+		GLuint shaderProgram,
+		const glm::mat4& viewMatrix,
+		const glm::mat4& projectionMatrix,
+		const glm::vec3& start,
+		const glm::vec3& end,
+		debugColor color);
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	/// Buffers - TODO: has no guards against errors
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	GLuint createAddAttribBuffer(GLuint vertexArrayObject,
+							 const void* data,
+							 const size_t dataSize,
+							 GLuint attributeIndex,
+							 GLsizei attributeSize,
+							 GLenum type,
+							 GLenum bufferUsage);
+
 	///////////////////////////////////////////////////////////////////////////
 	/// Helper to set uniform variables in shaders, labeled SLOW because they find the location from string each time.
 	/// In OpenGL (and similarly in other APIs) it is much more efficient (in terms of CPU time) to keep the uniform
@@ -88,23 +119,25 @@ namespace rederhelper
 	public:
 		~Model();
 		// The name of the whole model
-		std::string m_name;
+		std::string						m_name;
 		// The filename of this model
-		std::string m_filename;
+		std::string						m_filename;
 		// The materials
-		std::vector<Material> m_materials;
+		std::vector<Material>			m_materials;
 		// A model will contain one or more "Meshes"
-		std::vector<Mesh> m_meshes;
+		std::vector<Mesh>				m_meshes;
+
 		// Buffers on CPU
-		std::vector<glm::vec3> m_positions;
-		std::vector<glm::vec3> m_normals;
-		std::vector<glm::vec2> m_texture_coordinates;
+		std::vector<glm::vec3> 			m_positions;
+		std::vector<glm::vec3> 			m_normals;
+		std::vector<glm::vec2> 			m_texture_coordinates;
+
 		// Buffers on GPU
-		uint32_t m_positions_bo;
-		uint32_t m_normals_bo;
-		uint32_t m_texture_coordinates_bo;
+		uint32_t						m_positions_bo;
+		uint32_t 						m_normals_bo;
+		uint32_t 						m_texture_coordinates_bo;
 		// Vertex Array Object
-		uint32_t m_vaob;
+		uint32_t						m_vaob;
 	};
 
 	Model* loadModelFromOBJ(std::string filename);

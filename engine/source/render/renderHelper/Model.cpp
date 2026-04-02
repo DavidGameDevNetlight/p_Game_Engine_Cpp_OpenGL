@@ -9,7 +9,7 @@
 #include <GL/glew.h>
 #include <render/renderHelper/stb_image.h>
 
-namespace rederhelper
+namespace renderhelper
 {
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,6 +92,112 @@ namespace rederhelper
 		}
 
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	/// DebugDraws
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	void drawLineSegment(
+		GLuint shaderProgram,
+		const glm::mat4& viewMatrix,
+		const glm::mat4& projectionMatrix,
+		const glm::vec3& start,
+		const glm::vec3& end,
+		debugColor colorCode
+		)
+	{
+		//auto point = glm::vec3(1.0f, 0.0f, 0.0f);
+		//auto start = glm::vec3(0.0f, 0.0f, 0.0f);
+		using namespace glm;
+
+		GLuint vao = 0;
+		size_t nverts = 0;
+
+		// do this initialization first time the function is called...
+		if(vao == 0)
+		{
+			glGenVertexArrays(1, &vao);
+			std::vector<glm::vec3> positions;
+			positions.push_back(start);
+			positions.push_back(end);
+
+			renderhelper::createAddAttribBuffer(
+				vao,
+				positions.data(),
+				positions.size() * sizeof(glm::vec3),
+				0,
+				3,
+				GL_FLOAT,
+				GL_STATIC_DRAW);
+
+			nverts = positions.size();
+		}
+
+		mat4 modelMat = mat4(1);
+
+		GLint shader;
+		glGetIntegerv(GL_CURRENT_PROGRAM, &shader);
+		renderhelper::setUniformSlow(shaderProgram, "projectionMatrix", projectionMatrix * viewMatrix * modelMat);
+		renderhelper::setUniformSlow(shaderProgram, "modelMatrix", modelMat);
+
+		const int uniSolidColor		= glGetUniformLocation(shaderProgram, "solid_color");
+		const int uniIsSolidColor	= glGetUniformLocation(shaderProgram, "is_solid_color");
+
+		auto color = vec3(0);
+		switch (colorCode) {
+			case RED:
+				color.r = 1;
+				break;
+			case GREEN:
+				color.g = 1;
+				break;
+			case BLUE:
+				color.b = 1;
+				break;
+			case YELLOW:
+				color.r = 1;
+				color.g = 1;
+				break;
+			default:
+				color = vec3(1);
+				break;
+		}
+		glUniform3f(uniSolidColor, color.r, color.g, color.b);
+		glUniform1i(uniIsSolidColor, 1);
+
+		glBindVertexArray(vao);
+		glDrawArrays(GL_LINES, 0, static_cast<int>(nverts));
+		glUniform1i(uniIsSolidColor, 0);
+		glBindVertexArray(0);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	/// Buffers - TODO: has no guards against errors
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	GLuint createAddAttribBuffer(GLuint vertexArrayObject,
+							 const void* data,
+							 const size_t dataSize,
+							 GLuint attributeIndex,
+							 GLsizei attributeSize,
+							 GLenum type,
+							 GLenum bufferUsage)
+	{
+		GLuint buffer = 0;
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, dataSize, data, bufferUsage);
+		//CHECK_GL_ERROR();
+
+		// Now attach buffer to vertex array object.
+		glBindVertexArray(vertexArrayObject);
+		glVertexAttribPointer(attributeIndex, attributeSize, type, false, 0, 0);
+		glEnableVertexAttribArray(attributeIndex);
+		//CHECK_GL_ERROR();
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		return buffer;
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	/// Uniforms
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -466,25 +572,28 @@ namespace rederhelper
 		///////////////////////////////////////////////////////////////////////
 		glGenVertexArrays(1, &model->m_vaob);
 		glBindVertexArray(model->m_vaob);
+		// Buffers for position data
 		glGenBuffers(1, &model->m_positions_bo);
 		glBindBuffer(GL_ARRAY_BUFFER, model->m_positions_bo);
 		glBufferData(GL_ARRAY_BUFFER, model->m_positions.size() * sizeof(glm::vec3), &model->m_positions[0].x,
 		             GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		glEnableVertexAttribArray(0);
+		// Buffers for normals data
 		glGenBuffers(1, &model->m_normals_bo);
 		glBindBuffer(GL_ARRAY_BUFFER, model->m_normals_bo);
 		glBufferData(GL_ARRAY_BUFFER, model->m_normals.size() * sizeof(glm::vec3), &model->m_normals[0].x,
 		             GL_STATIC_DRAW);
 		glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
 		glEnableVertexAttribArray(1);
-		glGenBuffers(1, &model->m_texture_coordinates_bo);
+
+		/*glGenBuffers(1, &model->m_texture_coordinates_bo);
 		glBindBuffer(GL_ARRAY_BUFFER, model->m_texture_coordinates_bo);
 		glBufferData(GL_ARRAY_BUFFER, model->m_texture_coordinates.size() * sizeof(glm::vec2),
 		             &model->m_texture_coordinates[0].x, GL_STATIC_DRAW);
 		glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, 0);
 		glEnableVertexAttribArray(2);
-
+		*/
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -608,7 +717,9 @@ namespace rederhelper
 		glBindVertexArray(model->m_vaob);
 		for(auto& mesh : model->m_meshes)
 		{
-			if(submitMaterials)
+			if(!submitMaterials)
+				std::cerr << "ERROR: Material never submitted"<< "\n";
+			else
 			{
 				const Material& material = model->m_materials[mesh.m_material_idx];
 

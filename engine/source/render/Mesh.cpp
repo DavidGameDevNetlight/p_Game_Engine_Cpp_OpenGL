@@ -108,6 +108,8 @@ namespace eng
 			glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);
 		else
 			glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
+
+		glUseProgram(0);
 	}
 
 	void Mesh::DeleteBuffers()

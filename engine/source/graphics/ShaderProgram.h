@@ -37,6 +37,7 @@ namespace eng
 		void SetUniform3Float(		const string& uniformName,	vec3	value);
 		void SetProjectionMatrix(	const string& matrixName,	mat4	matrix);
 
+		const GLuint GetProgramId() const;
 
 		/// <summary>
 		/// Checks if the uniform name is stored in cache, otherwise, adds it, and returns the location

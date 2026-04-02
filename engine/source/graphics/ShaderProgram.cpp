@@ -12,6 +12,10 @@ namespace eng
 		glDeleteProgram(m_shaderProgramId);
 	};
 
+	const GLuint ShaderProgram::GetProgramId() const{
+		return m_shaderProgramId;
+	}
+
 	void ShaderProgram::Bind() const
 	{
 		glUseProgram(m_shaderProgramId);

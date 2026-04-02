@@ -10,7 +10,7 @@ bool Game::Init()
     //////////////////////////////////////////////////////////////
     // Shader sources
     //////////////////////////////////////////////////////////////
-
+    /*
     std::ifstream   vertexShaderFile("./shaders/debug_lambert_diffuse.vert");
     std::ifstream   fragmentShaderFile("./shaders/debug_lambert_diffuse.frag");
 
@@ -60,14 +60,14 @@ bool Game::Init()
     size_t totalFComponentsCount    = RECT_VERTICES_DATA_SIZE;
 
     m_mesh = new eng::Mesh(vertexLayout, &rectangleVertices[0], totalFComponentsCount, &rectangleIndices[0], RECT_INDICES_SIZE);
-
+    */
 	return true;
 }
 
 void Game::Update(float deltaTime)
 {
 	//std::cout << "Delta time: " << deltaTime << "\n";
-	
+	/*
 	auto& inputManager = Engine::GetInstance().GetInputManager();
 	if(inputManager.IsKeyPressed(GLFW_KEY_A))
 		std::cout << "Key[A]: Pressed! \n";
@@ -78,10 +78,13 @@ void Game::Update(float deltaTime)
 
     auto& renderQueue = Engine::GetInstance().GetRenderQueue();
     renderQueue.Submit(command);
+    */
 }
 
 void Game::Destroy()
 {
+    /*
     delete m_mesh;
     m_mesh = nullptr;
+    */
 }

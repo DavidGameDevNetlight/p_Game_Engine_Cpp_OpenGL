@@ -8,7 +8,7 @@
 
 namespace eng
 {
-	constexpr int KEYS_SIZE = 256;
+	constexpr int KEYS_SIZE = 266;
 
 	class InputManager
 	{

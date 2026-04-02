@@ -50,6 +50,9 @@ namespace eng
 		// Temporal public variables
 		//////////////////////////////////////////////////////////////
 		vec3	worldUp				= vec3(0.0f, 1.0f, 0.0f);
+		vec3	worldRight			= vec3(1.0f, 0.0f, 0.0f);
+		vec3	worldForward		= vec3(0.0f, 0.0f, 1.0f);
+
 		ivec2	prevMouseCoords 	= { -1, -1 };
 		bool	isMouseDragging 	= false;
 		// Camera params

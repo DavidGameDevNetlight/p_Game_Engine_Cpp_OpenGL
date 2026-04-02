@@ -84,10 +84,10 @@ namespace eng
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
-			ImGui::PushID("mag");
+			/*ImGui::PushID("mag");
 			ImGui::Text("Camera setting");
 			ImGui::RadioButton("An option", &value, 0);
-			ImGui::PopID();
+			ImGui::PopID();*/
 			//ImGui::ShowDemoWindow(); // Show demo window! :)
 			///////////////////////////////////////////////////////////////////////
 
