@@ -13,20 +13,22 @@
 #include "GLFW/glfw3.h"
 #include "graphics/ShaderProgram.h"
 #include "renderHelper/Model.h"
+#include "Camera.h"
 using namespace glm;
 
 namespace eng
 {
 	//TODO: all of these are temporal debug variables that will be moved
-	vec3 gLightDir = glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f));
-	renderhelper::Model* sphereModel = nullptr;
-	ShaderProgram* debugShaderProgram = nullptr;
-	ShaderProgram* debugScreenSpaceShaderProgram = nullptr;
-	Mesh* debugScreenSpaceMesh = nullptr;
 
-	vec3 spherePos = vec3(0.0f);
 
-	mat4 sphereModelMatrix(	1.0f, 0.0f, 0.0f, 0.0f, // x
+	renderhelper::Model*	sphereModel						= nullptr;
+	ShaderProgram*			debugShaderProgram				= nullptr;
+	ShaderProgram*			debugScreenSpaceShaderProgram	= nullptr;
+	Mesh*					debugScreenSpaceMesh			= nullptr;
+
+	vec3	gLightDir = normalize(vec3(0.0f, -1.0f, -1.0f));
+	vec3	spherePos = vec3(0.0f);
+	mat4	sphereModelMatrix(	1.0f, 0.0f, 0.0f, 0.0f, // x
 							0.0f, 1.0f, 0.0f, 0.0f, // y
 							0.0f, 0.0f, 1.0f, 0.0f, // z
 							0.0f, 0.0f, 0.0f, 1.0f); // translation
@@ -38,6 +40,8 @@ namespace eng
 		// was created using new. Even if what it stores are pointers to heap allocated memory
 		// delete[] m_renderCommands;
 		delete debugScreenSpaceMesh;
+		delete debugShaderProgram;
+		delete debugScreenSpaceShaderProgram;
 	}
 
 	
@@ -151,6 +155,13 @@ namespace eng
 	void RenderQueue::Draw(GraphicsAPI& graphicsApi)
 	{
 		// TODO: Adding a 3D camera by setting up the projection matrix
+		//Camera& camera = Engine::GetInstance().GetMainCamera();
+		//std::cout << camera.Position().z << " camera.Pos.Z\n";
+		// TODO: the position vector re-sets
+
+		ActiveCamera& acticeCamera = Engine::GetInstance().GetMainCamera();
+		camera = acticeCamera.GetActiveCamera();
+
 		const float cameraMoveSpeed = 5.0f;
 		const vec3	cameraRight		= normalize(cross(cameraDirection, worldUp));
 		const vec3	cameraUp		= normalize(cross(cameraRight, cameraDirection));
@@ -166,33 +177,48 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 
 		auto& inputManager = Engine::GetInstance().GetInputManager();
+		float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
+
+		if(inputManager.IsKeyPressed(GLFW_KEY_P))
+		{
+			std::cout << camera->GetId() << " camera\n";
+			std::cout << camera->Position().x << " camera.Pos.X\n";
+			std::cout << camera->Position().y << " camera.Pos.Y\n";
+			std::cout << camera->Position().z << " camera.Pos.Z\n";
+		}
+
 		if(inputManager.IsKeyPressed(GLFW_KEY_W))
 		{
-			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			cameraPosition += cameraDirection * delta;
+			camera->Position() += camera->Direction() * delta;
+			//cameraPosition += cameraDirection * delta;
 			std::cout << "Key[W]: Pressed! \n";
+			std::cout << camera->Position().x << " camera.Pos.X\n";
+			std::cout << camera->Position().y << " camera.Pos.Y\n";
+			std::cout << camera->Position().z << " camera.Pos.Z\n";
 		}
+
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_S))
 		{
-			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			cameraPosition += cameraDirection * -delta;
+			camera->Position() += camera->Direction() * -delta;
+			//cameraPosition += cameraDirection * -delta;
 			std::cout << "Key[S]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_D))
 		{
-			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			cameraPosition += cameraRight * delta;
+			camera->Position() += camera->Right() * delta;
+			//cameraPosition += cameraRight * delta;
 			std::cout << "Key[D]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_A))
 		{
-			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			cameraPosition -= cameraRight * delta;
+			camera->Position() -= camera->Right() * delta;
+			//cameraPosition -= cameraRight * delta;
 			std::cout << "Key[A]: Pressed! \n";
 		}
+
 
 		//////////////////////////////////////////////////////////////
 		// Updating sphere position
@@ -234,9 +260,12 @@ namespace eng
 
 		// The negative cameraPosition makes the camera back to the origin.
 		// The viewMatrix is in reverse order, we first translate back to the origin and then rotate
-		const mat4		viewMatrix				= cameraRotation * translate(-cameraPosition);
-		const mat4		projectionMatrix		= perspective(radians(pp.fov), aspectRatio, pp.nearPlane, pp.farPlane);
+		//const mat4		viewMatrix				= cameraRotation * translate(-cameraPosition);
 
+		//const mat4		projectionMatrix		= perspective(radians(pp.fov), aspectRatio, pp.nearPlane, pp.farPlane);
+		const mat4		viewMatrix				= camera->ViewMatrix();
+		const mat4		projectionMatrix		= camera->ProjectionMatrix();
+		const vec3		camPosition				= camera->Position();
 		//////////////////////////////////////////////////////////////
 		/// FullScreen Quad
 		//////////////////////////////////////////////////////////////
@@ -268,7 +297,9 @@ namespace eng
 		//glUniformMatrix4fv(uniProjectMatrix, 1, false, &modelViewProjectionMatrix[0].x);
 		glUniformMatrix4fv(uniProjectMatrix, 1, false, &modelViewProjectionMatrix[0].x);
 
-		glUniform3f(uniCameraPos, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+		//glUniform3f(uniCameraPos, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+		glUniform3f(uniCameraPos, camPosition.x, camPosition.y, camPosition.z);
+
 		glUniform3f(uniLightDir, gLightDir.x, gLightDir.y, gLightDir.z);
 		renderhelper::render(sphereModel);
 
@@ -339,7 +370,7 @@ namespace eng
 			ImGui::LabelText("Far plane",        "%.2f", pp.farPlane);
 			ImGui::LabelText("Viewport height",  "%d",   pp.height);
 			ImGui::LabelText("Viewport width",   "%d",   pp.width);
-			ImGui::LabelText("Camera Pos Z",     "%.2f", cameraPosition.z);
+			ImGui::LabelText("Camera Pos Z",     "%.2f", camera->Position().z);
 
 			ImGui::Separator();
 			if (ImGui::Button("Close"))

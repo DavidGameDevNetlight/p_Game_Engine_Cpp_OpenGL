@@ -11,6 +11,8 @@ namespace eng
 	class Material;
 	class GraphicsAPI;
 
+	class Camera;
+
 	// TODO print the size of one RenderCommand, it should be 16 bytes, as it container only 2 pointers
 	struct RenderCommand
 	{
@@ -21,7 +23,7 @@ namespace eng
 	//////////////////////////////////////////////////////////////
 	// Temporal public variables
 	//////////////////////////////////////////////////////////////
-	struct PerspectiveParams
+	struct PerspectiveParamss
 	{
 		float	fov;
 		int		width;
@@ -56,12 +58,13 @@ namespace eng
 		ivec2	prevMouseCoords 	= { -1, -1 };
 		bool	isMouseDragging 	= false;
 		// Camera params
+		Camera* camera = nullptr;
 		vec3	cameraPosition 		= vec3(15.0f, 15.0f, 15.0f);
 		vec3	cameraDirection		= vec3(-1.0f, -1.0f, -1.0f);
 		mat4	T					= mat4(1.0f);
 		mat4	R					= mat4(1.0f);
 
-		PerspectiveParams	pp		= { 45.0f, 1280, 720, 0.1f, 300.0f };
+		PerspectiveParamss	pp		= { 45.0f, 1280, 720, 0.1f, 300.0f };
 		int 				old_w 	= 1280;
 		int 				old_h 	= 720;
 

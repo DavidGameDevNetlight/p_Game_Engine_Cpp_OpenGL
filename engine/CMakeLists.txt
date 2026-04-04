@@ -22,6 +22,10 @@ set(PROJECT_SOURCE_FILES
         source/render/Mesh.cpp
         source/render/RenderQueue.h
         source/render/RenderQueue.cpp
+        source/render/Camera.cpp
+        source/render/Camera.h
+
+
         # Render Helper
         source/render/renderHelper/Model.h
         source/render/renderHelper/Model.cpp

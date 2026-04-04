@@ -27,6 +27,7 @@ Thumbs.db
 # Build output (root-level)
 # =========================
 /build/
+/cmake-build-debug/
 /out/
 /bin/
 /obj/

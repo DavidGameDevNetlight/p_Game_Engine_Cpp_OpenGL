@@ -2,6 +2,7 @@
 #include "Application.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "render/Camera.h"
 
 namespace eng
 {
@@ -29,6 +30,7 @@ namespace eng
 	{
 		delete m_app;
 		m_app = nullptr;
+
 	}
 
 	bool Engine::Init(unsigned int width, unsigned int height)
@@ -54,6 +56,8 @@ namespace eng
 		ImGui_ImplOpenGL3_Init();
 		///////////////////////////////////////////////////////////////////////
 
+
+
 		// TODO added render queue init
 		GetRenderQueue().Init();
 
@@ -68,6 +72,7 @@ namespace eng
 		m_lastTimePoint = std::chrono::high_resolution_clock::now();
 		float deltaTime = 0.f;
 
+		InitializeCamera(); // TODO: define where to init
 		///////////////////////////////////////////////////////////////////////
 		// THE GAME LOOP
 		///////////////////////////////////////////////////////////////////////
@@ -93,6 +98,9 @@ namespace eng
 
 			// Update game logic
 			UpdateDeltaTime(deltaTime);
+
+			m_activeCamera.Update(deltaTime);
+
 			m_app->Update(deltaTime);
 
 			m_graphicsApi.SetClearColor(0.f, 0.f, 0.f, 1.f);
@@ -162,6 +170,11 @@ namespace eng
 		return m_renderQueue;
 	}
 
+	ActiveCamera&	Engine::GetMainCamera()
+	{
+		return m_activeCamera;
+	}
+
 	///////////////////////////////////////////////////////////////////
 	// Privates
 	///////////////////////////////////////////////////////////////////
@@ -225,6 +238,35 @@ namespace eng
 	float Engine::GetDeltaTime() const
 	{
 		return m_deltaTime;
+	}
+
+	const World& Engine::GetWorld() const
+	{
+		return m_world;
+	}
+
+	void Engine::InitializeCamera()
+	{
+		std::cout << "{   x: " <<m_world.worldUp.x
+					<< ", y: " <<m_world.worldUp.y
+					<< ", z: " <<m_world.worldUp.z
+					<< "}\n";
+		PerspectiveParams	pp;
+		pp.width        = DEFALT_WINDOW_WIDTH;
+		pp.height       = DEFALT_WINDOW_HEIGHT;
+		pp.fov          = 45.0f;
+		pp.nearPlane    = 0.1f;
+		pp.farPlane     = 300.f;
+		pp.aspectRatio  = static_cast<float>(pp.width) / static_cast<float>(pp.height);
+
+		//Camera camera{};
+		//camera.InitializeCamera(GetWorld().worldUp, pp, true);
+		m_cameras[0] = new Camera();
+		m_cameras[0]->InitializeCamera(GetWorld().worldUp, pp);
+		m_cameras[0]->SetCameraId(1);
+		//m_activeCamera.SetActiveCamera(*m_cameras[0]);
+		m_activeCamera.SetActiveCamera(*m_cameras[0] );
+
 	}
 
 }

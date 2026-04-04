@@ -4,7 +4,7 @@
 #include "input/InputManager.h"
 #include "graphics/GraphicsAPI.h"
 #include "render/RenderQueue.h"
-
+#include "render/Camera.h"
 /////////////////////////////////////////////////////////
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -29,6 +29,13 @@ namespace eng
 	/// Forward declaration:
 	// This tells the compiler: "A class called Application exists I'll give you its full definition later."
 	class Application;
+
+	struct World
+	{
+		vec3	worldUp				= vec3(0.0f, 1.0f, 0.0f);
+		vec3	worldRight			= vec3(1.0f, 0.0f, 0.0f);
+		vec3	worldForward		= vec3(0.0f, 0.0f, 1.0f);
+	};
 
 	/// <summary>
 	/// Singleton class
@@ -78,6 +85,7 @@ namespace eng
 		void SetApplication(Application* app);	// ownership transfer
 
 		float GetDeltaTime() const;
+
 		//////////////////////////////////////////////////////////////
 		// Getters to main classes
 		//////////////////////////////////////////////////////////////
@@ -86,6 +94,9 @@ namespace eng
 		InputManager&		GetInputManager(); // Const Engine, read-only access
 		GraphicsAPI&		GetGraphicsAPI();
 		RenderQueue&		GetRenderQueue();
+
+		const World&		GetWorld() const;
+		ActiveCamera&		GetMainCamera();
 	
 	private:
 		std::chrono::steady_clock::time_point m_lastTimePoint;
@@ -100,6 +111,10 @@ namespace eng
 
 		RenderQueue		m_renderQueue;
 
+		// TODO: Adding core objects of the game.
+		Camera* 		m_cameras[3];
+		ActiveCamera	m_activeCamera;
+
 		/// <summary>
 		/// Uses GLWF to create the window and set the OpenGL context
 		/// </summary>
@@ -108,11 +123,18 @@ namespace eng
 
 		void UpdateDeltaTime(float& timeToUpdate);
 
+		void InitializeCamera();
+
 		///////////////////////////////////////////////////////
 		// Time Features
 		///////////////////////////////////////////////////////
 		float m_deltaTime		= 0.0f;
 		float m_timeInSeconds	= 0.0f;
+
+		///////////////////////////////////////////////////////
+		// Wolrd Features
+		///////////////////////////////////////////////////////
+		World m_world;
 	};
 
 }

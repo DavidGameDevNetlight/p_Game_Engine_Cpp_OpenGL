@@ -2,8 +2,9 @@
 #include <eng.h>
 #include <iostream>
 
+using namespace eng;
 
-class Game : public eng::Application
+class Game : public Application
 {
 public:
 	/// <summary>
@@ -14,11 +15,9 @@ public:
 	void Update(float deltaTime) 	override;
 	void Destroy() 					override;
 
-
-
 private:
-	eng::Material	m_material;
+	Material	m_material;
 	
 	// Always initialize pointers to nullptr. If a process fails early, this member contains garbage.
-	eng::Mesh*		m_mesh			= nullptr;		// original std::unique_ptr<eng::Mesh>
+	Mesh*		m_mesh			= nullptr;		// original std::unique_ptr<eng::Mesh>
 };
