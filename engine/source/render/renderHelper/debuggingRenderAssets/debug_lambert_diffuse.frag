@@ -1,7 +1,7 @@
 #version 330 core
 
 uniform vec4 uColor;
-precision highp float;
+//precision highp float;
 
 uniform vec3 material_color     = vec3(0.0);
 uniform vec3 material_emission  = vec3(0.0);
@@ -20,11 +20,6 @@ out vec4 FragColor;
 
 void main()
 {
-    if(is_solid_color)
-    {
-        FragColor = vec4(solid_color, 1.0);
-        return;
-    }
 
     vec3 n = normalize(ws_normal);
     vec4 color = vec4(material_color, 1.0);
@@ -41,8 +36,8 @@ void main()
     }*/
 
     //const vec3 lightDir = normalize(vec3(-0.74, -1, 0.68));
-    color = vec4(0.0, 0.0, 1.0, 1.0);
+    //color = vec4(0.0, 0.0, 1.0, 1.0);
     FragColor = color * max(dot(n, -light_direction), 0.3) + emission;
-    //FragColor = color;
+    //FragColor = vec4(1.0,0.0,0.0,1.0); // debug
 
 }

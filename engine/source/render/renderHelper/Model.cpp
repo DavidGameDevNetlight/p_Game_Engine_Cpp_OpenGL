@@ -7,6 +7,9 @@
 #include <sstream>
 #include <iomanip>
 #include <GL/glew.h>
+
+// STB_IMAGE for loading images of many filetypes
+#define STB_IMAGE_IMPLEMENTATION
 #include <render/renderHelper/stb_image.h>
 
 namespace renderhelper
@@ -93,6 +96,26 @@ namespace renderhelper
 
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	// Local helper struct for loading HDR images
+	///////////////////////////////////////////////////////////////////////////
+
+	HDRImage::HDRImage(const std::string& filename)
+	{
+		stbi_set_flip_vertically_on_load(true);
+		data = stbi_loadf(filename.c_str(), &width, &height, &components, 3);
+		if(data == nullptr)
+		{
+			std::cout << "Failed to load image: " << filename << "\n";
+			exit(1);
+		}
+		std::cout << "Succeed to load image: " << filename << "\n";
+	};
+	HDRImage::~HDRImage()
+	{
+		stbi_image_free(data);
+		std::cout << "Deallocating memory for image loader\n";
+	};
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	/// DebugDraws
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,42 +128,34 @@ namespace renderhelper
 		debugColor colorCode
 		)
 	{
-		//auto point = glm::vec3(1.0f, 0.0f, 0.0f);
-		//auto start = glm::vec3(0.0f, 0.0f, 0.0f);
 		using namespace glm;
 
-		GLuint vao = 0;
-		size_t nverts = 0;
+		glUseProgram(shaderProgram);
 
-		// do this initialization first time the function is called...
+		static GLuint vao = 0;
+		static GLuint vbo = 0;       // keep track of the buffer to update it
+		constexpr size_t nverts = 2;     // a line always has 2 vertices
+
+		vec3 positions[2] = { start, end };
+
 		if(vao == 0)
 		{
+			// First call: create VAO + VBO
 			glGenVertexArrays(1, &vao);
-			std::vector<glm::vec3> positions;
-			positions.push_back(start);
-			positions.push_back(end);
-
-			renderhelper::createAddAttribBuffer(
-				vao,
-				positions.data(),
-				positions.size() * sizeof(glm::vec3),
-				0,
-				3,
-				GL_FLOAT,
-				GL_STATIC_DRAW);
-
-			nverts = positions.size();
+			vbo = renderhelper::createAddAttribBuffer(
+				vao, positions, sizeof(positions), 0, 3, GL_FLOAT, GL_DYNAMIC_DRAW);
+		}
+		else
+		{
+			// Subsequent calls: update the buffer with new positions
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(positions), positions);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 
 		mat4 modelMat = mat4(1);
-
-		GLint shader;
-		glGetIntegerv(GL_CURRENT_PROGRAM, &shader);
-		renderhelper::setUniformSlow(shaderProgram, "projectionMatrix", projectionMatrix * viewMatrix * modelMat);
-		renderhelper::setUniformSlow(shaderProgram, "modelMatrix", modelMat);
-
-		const int uniSolidColor		= glGetUniformLocation(shaderProgram, "solid_color");
-		const int uniIsSolidColor	= glGetUniformLocation(shaderProgram, "is_solid_color");
+		setUniformSlow(shaderProgram, "modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMat);
+		const int uniSolidColor		= glGetUniformLocation(shaderProgram, "debugSolidColor");
 
 		auto color = vec3(0);
 		switch (colorCode) {
@@ -162,12 +177,10 @@ namespace renderhelper
 				break;
 		}
 		glUniform3f(uniSolidColor, color.r, color.g, color.b);
-		glUniform1i(uniIsSolidColor, 1);
-
 		glBindVertexArray(vao);
 		glDrawArrays(GL_LINES, 0, static_cast<int>(nverts));
-		glUniform1i(uniIsSolidColor, 0);
 		glBindVertexArray(0);
+		glUseProgram(0);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -754,5 +767,6 @@ namespace renderhelper
 			glDrawArrays(GL_TRIANGLES, mesh.m_start_index, (GLsizei)mesh.m_number_of_vertices);
 		}
 		glBindVertexArray(0);
+		glUseProgram(0);
 	}
 }

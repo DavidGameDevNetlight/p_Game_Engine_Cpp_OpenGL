@@ -29,7 +29,7 @@ set(PROJECT_SOURCE_FILES
         # Render Helper
         source/render/renderHelper/Model.h
         source/render/renderHelper/Model.cpp
-        source/render/renderHelper/stb_image.c
+        #source/render/renderHelper/stb_image.c
         source/render/renderHelper/stb_image.h
 
         #  ImGUI, the library does not contain a CMake file, so it just can be added

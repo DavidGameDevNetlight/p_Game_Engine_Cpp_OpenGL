@@ -60,6 +60,7 @@ namespace eng
 
 		// TODO added render queue init
 		GetRenderQueue().Init();
+		InitializeCamera(); // TODO: define where to init
 
 		return m_app->Init();
 	};
@@ -72,7 +73,7 @@ namespace eng
 		m_lastTimePoint = std::chrono::high_resolution_clock::now();
 		float deltaTime = 0.f;
 
-		InitializeCamera(); // TODO: define where to init
+
 		///////////////////////////////////////////////////////////////////////
 		// THE GAME LOOP
 		///////////////////////////////////////////////////////////////////////
@@ -103,7 +104,7 @@ namespace eng
 
 			m_app->Update(deltaTime);
 
-			m_graphicsApi.SetClearColor(0.f, 0.f, 0.f, 1.f);
+			m_graphicsApi.SetClearColor(1.f, 1.f, 1.f, 1.f);
 			m_graphicsApi.ClearBuffers();
 
 			m_renderQueue.Draw(m_graphicsApi);
@@ -251,6 +252,7 @@ namespace eng
 					<< ", y: " <<m_world.worldUp.y
 					<< ", z: " <<m_world.worldUp.z
 					<< "}\n";
+
 		PerspectiveParams	pp;
 		pp.width        = DEFALT_WINDOW_WIDTH;
 		pp.height       = DEFALT_WINDOW_HEIGHT;
@@ -259,12 +261,10 @@ namespace eng
 		pp.farPlane     = 300.f;
 		pp.aspectRatio  = static_cast<float>(pp.width) / static_cast<float>(pp.height);
 
-		//Camera camera{};
-		//camera.InitializeCamera(GetWorld().worldUp, pp, true);
 		m_cameras[0] = new Camera();
 		m_cameras[0]->InitializeCamera(GetWorld().worldUp, pp);
 		m_cameras[0]->SetCameraId(1);
-		//m_activeCamera.SetActiveCamera(*m_cameras[0]);
+
 		m_activeCamera.SetActiveCamera(*m_cameras[0] );
 
 	}

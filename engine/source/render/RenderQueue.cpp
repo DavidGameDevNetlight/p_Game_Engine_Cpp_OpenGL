@@ -23,8 +23,16 @@ namespace eng
 
 	renderhelper::Model*	sphereModel						= nullptr;
 	ShaderProgram*			debugShaderProgram				= nullptr;
+	ShaderProgram*			debugColorShaderProgram			= nullptr;
 	ShaderProgram*			debugScreenSpaceShaderProgram	= nullptr;
+
 	Mesh*					debugScreenSpaceMesh			= nullptr;
+
+	float			 		environment_multiplier			= 1.0f;
+	GLuint			 		environmentMap;
+	GLuint			 		irradianceMap;
+	GLuint			 		reflectionMap;
+	const			 		std::string envmap_base_name	= "001";
 
 	vec3	gLightDir = normalize(vec3(0.0f, -1.0f, -1.0f));
 	vec3	spherePos = vec3(0.0f);
@@ -42,6 +50,7 @@ namespace eng
 		delete debugScreenSpaceMesh;
 		delete debugShaderProgram;
 		delete debugScreenSpaceShaderProgram;
+		delete debugColorShaderProgram;
 	}
 
 	
@@ -93,7 +102,21 @@ namespace eng
 		std::string	fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
 
 		debugShaderProgram = Engine::GetInstance().GetGraphicsAPI().CreateShaderProgram(vertexShaderSource, fragmentShaderSource);
-		glUseProgram(debugShaderProgram->GetProgramId());
+		//glUseProgram(debugShaderProgram->GetProgramId());
+
+		std::ifstream debugVertexShaderFile("../engine/source/render/renderHelper/debuggingRenderAssets/debug_solid_color.vert");
+		std::ifstream debugFragmentShaderFile("../engine/source/render/renderHelper/debuggingRenderAssets/debug_solid_color.frag");
+
+		if (!debugVertexShaderFile.is_open() || !debugFragmentShaderFile.is_open())
+			std::cerr << "ERROR: Failed to open shaders files!\n";
+		else
+			std::cout << "SUCCESS: Shaders files are open\n";
+
+		std::string debugVertexShaderSource((std::istreambuf_iterator<char>(debugVertexShaderFile)), std::istreambuf_iterator<char>());
+		std::string debugFragmentShaderSource ((std::istreambuf_iterator<char>(debugFragmentShaderFile)), std::istreambuf_iterator<char>());
+
+		debugColorShaderProgram = Engine::GetInstance().GetGraphicsAPI().CreateShaderProgram(debugVertexShaderSource, debugFragmentShaderSource);
+		//glUseProgram(debugShaderProgram->GetProgramId());
 	}
 
 	void loadScreenSpaceShaders()
@@ -148,30 +171,35 @@ namespace eng
 
 		sphereModelMatrix = scale(sphereModelMatrix, vec3(0.5f, 0.5f, 0.5f));
 
+		///////////////////////////////////////////////////////////////
+		/// Texture Generation
+		///////////////////////////////////////////////////////////////
+		{
+			renderhelper::HDRImage image("./assets/hdr/" + envmap_base_name + ".hdr");
+			// Generate handlers to the GPU resource
+			glGenTextures(1, &environmentMap);
+			// Bind the handler to set properties
+			glBindTexture(GL_TEXTURE_2D, environmentMap);
+			// Buffer the image data
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, image.width, image.height, 0, GL_RGB, GL_FLOAT, image.data);
+			// Set the behaviour for sampling: magnification and minification, and out-of-bound sampling behaviour
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
 	}
 
 
 
 	void RenderQueue::Draw(GraphicsAPI& graphicsApi)
 	{
-		// TODO: Adding a 3D camera by setting up the projection matrix
-		//Camera& camera = Engine::GetInstance().GetMainCamera();
-		//std::cout << camera.Position().z << " camera.Pos.Z\n";
-		// TODO: the position vector re-sets
-
 		ActiveCamera& acticeCamera = Engine::GetInstance().GetMainCamera();
+		const World& worldCoord = Engine::GetInstance().GetWorld();
 		camera = acticeCamera.GetActiveCamera();
-
 		const float cameraMoveSpeed = 5.0f;
-		const vec3	cameraRight		= normalize(cross(cameraDirection, worldUp));
-		const vec3	cameraUp		= normalize(cross(cameraRight, cameraDirection));
-
-		const mat3		cameraBaseVectorWorldSpace(cameraRight, cameraUp, -cameraDirection);
-		// This allows to rotate the vertices of models based on the camera
-
-		const mat4		cameraRotation			= transpose(cameraBaseVectorWorldSpace);
-		const float		aspectRatio				= static_cast<float>(pp.width) / static_cast<float>(pp.height);
-
+		GLuint current_program = 0;
+		GLuint uniCameraPos = 0;
 		//////////////////////////////////////////////////////////////
 		// Updating camera position
 		//////////////////////////////////////////////////////////////
@@ -179,18 +207,9 @@ namespace eng
 		auto& inputManager = Engine::GetInstance().GetInputManager();
 		float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
 
-		if(inputManager.IsKeyPressed(GLFW_KEY_P))
-		{
-			std::cout << camera->GetId() << " camera\n";
-			std::cout << camera->Position().x << " camera.Pos.X\n";
-			std::cout << camera->Position().y << " camera.Pos.Y\n";
-			std::cout << camera->Position().z << " camera.Pos.Z\n";
-		}
-
 		if(inputManager.IsKeyPressed(GLFW_KEY_W))
 		{
 			camera->Position() += camera->Direction() * delta;
-			//cameraPosition += cameraDirection * delta;
 			std::cout << "Key[W]: Pressed! \n";
 			std::cout << camera->Position().x << " camera.Pos.X\n";
 			std::cout << camera->Position().y << " camera.Pos.Y\n";
@@ -201,21 +220,18 @@ namespace eng
 		if(inputManager.IsKeyPressed(GLFW_KEY_S))
 		{
 			camera->Position() += camera->Direction() * -delta;
-			//cameraPosition += cameraDirection * -delta;
 			std::cout << "Key[S]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_D))
 		{
 			camera->Position() += camera->Right() * delta;
-			//cameraPosition += cameraRight * delta;
 			std::cout << "Key[D]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_A))
 		{
 			camera->Position() -= camera->Right() * delta;
-			//cameraPosition -= cameraRight * delta;
 			std::cout << "Key[A]: Pressed! \n";
 		}
 
@@ -227,82 +243,104 @@ namespace eng
 		if(inputManager.IsKeyPressed(GLFW_KEY_UP))
 		{
 			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			spherePos += worldForward * delta;
+			spherePos += worldCoord.worldForward * delta;
 			std::cout << "Key[UP]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_DOWN))
 		{
 			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			spherePos -= worldForward * delta;
+			spherePos -= worldCoord.worldForward * delta;
 			std::cout << "Key[UP]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_RIGHT))
 		{
 			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			spherePos += worldRight * delta;
+			spherePos += worldCoord.worldRight * delta;
 			std::cout << "Key[UP]: Pressed! \n";
 		}
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_LEFT))
 		{
 			float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
-			spherePos -= worldRight * delta;
+			spherePos -= worldCoord.worldRight * delta;
 			std::cout << "Key[UP]: Pressed! \n";
 		}
 
-		//sphereModelMatrix = translate(spherePos);
 		sphereModelMatrix[3].x = spherePos.x;
 		sphereModelMatrix[3].y = spherePos.y;
 		sphereModelMatrix[3].z = spherePos.z;
 
-
-		// The negative cameraPosition makes the camera back to the origin.
-		// The viewMatrix is in reverse order, we first translate back to the origin and then rotate
-		//const mat4		viewMatrix				= cameraRotation * translate(-cameraPosition);
-
-		//const mat4		projectionMatrix		= perspective(radians(pp.fov), aspectRatio, pp.nearPlane, pp.farPlane);
 		const mat4		viewMatrix				= camera->ViewMatrix();
 		const mat4		projectionMatrix		= camera->ProjectionMatrix();
 		const vec3		camPosition				= camera->Position();
+
 		//////////////////////////////////////////////////////////////
 		/// FullScreen Quad
 		//////////////////////////////////////////////////////////////
 
+		//	glActiveTexture(GL_TEXTURE0); // GLSL 420
+		// glBindTexture(GL_TEXTURE_2D, environmentMap);
+		current_program = debugScreenSpaceShaderProgram->GetProgramId();
+		glUseProgram(current_program);
+
+		// Get the uniforms' location
+
+		uniCameraPos				= glGetUniformLocation(current_program, "camera_pos");
+		const GLint uniEnvMultiplier			= glGetUniformLocation(current_program, "environment_multiplier");
+		const GLint uniInvProjectionViewMatrix	= glGetUniformLocation(current_program, "inv_PV");
+		const GLint uniEnvMap					= glGetUniformLocation(current_program, "environmentMap");
+		// Set the values for the GPU
+
+		glUniform3f(uniCameraPos, camPosition.x, camPosition.y, camPosition.z);
+		glUniform1f(uniEnvMultiplier, environment_multiplier);
+
+		mat4 invProjectionViewMatrix = inverse(projectionMatrix * viewMatrix);
+		glUniformMatrix4fv(uniInvProjectionViewMatrix, 1, GL_FALSE, &invProjectionViewMatrix[0].x);
+
+		//Set the texture units
+		// GL_TEXTURE6 is a GLenum constant with value 33798 (0x84C6)
+		// glUniform1i for a sampler expects the texture unit INDEX (0..15), not the enum
+		// The shader looks for texture unit 33798 — which doesn't exist — so it returns black/zero
+		glUniform1i(uniEnvMap, 6);
+
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, environmentMap);
+		// Use the program
 		GLboolean depth_test_state;
 		glGetBooleanv(GL_DEPTH_TEST, &depth_test_state);
 		glDisable(GL_DEPTH_TEST);
-		glUseProgram(debugScreenSpaceShaderProgram->GetProgramId());
 		debugScreenSpaceMesh->Bind();
 		debugScreenSpaceMesh->Draw();
 
 		if (depth_test_state)
 			glEnable(GL_DEPTH_TEST);
 
+		glBindTexture(GL_TEXTURE_2D,0);
+		glUseProgram(0);
+
 		//////////////////////////////////////////////////////////////
 		// TODO: Updating the uniforms of the debug shader
 		//////////////////////////////////////////////////////////////
-		const GLuint current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
-		//glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
+		current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
 		glUseProgram(current_program);
+		//glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
 
+		uniCameraPos				= glGetUniformLocation(current_program, "cameraPosition");
 		const int uniModelMatrix	= glGetUniformLocation(current_program, "modelMatrix");
 		const int uniProjectMatrix	= glGetUniformLocation(current_program, "projectionMatrix");
-		const int uniCameraPos		= glGetUniformLocation(current_program, "cameraPosition");
 		const int uniLightDir		= glGetUniformLocation(current_program, "light_direction");
 
 		const mat4 modelViewProjectionMatrix = projectionMatrix * viewMatrix * sphereModelMatrix;
-		glUniformMatrix4fv(uniModelMatrix,   1, false, &sphereModelMatrix[0].x);
-		//glUniformMatrix4fv(uniProjectMatrix, 1, false, &modelViewProjectionMatrix[0].x);
-		glUniformMatrix4fv(uniProjectMatrix, 1, false, &modelViewProjectionMatrix[0].x);
 
-		//glUniform3f(uniCameraPos, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+		glUniformMatrix4fv(uniModelMatrix,   1, false, &sphereModelMatrix[0].x);
+		glUniformMatrix4fv(uniProjectMatrix, 1, false, &modelViewProjectionMatrix[0].x);
 		glUniform3f(uniCameraPos, camPosition.x, camPosition.y, camPosition.z);
 
 		glUniform3f(uniLightDir, gLightDir.x, gLightDir.y, gLightDir.z);
-		renderhelper::render(sphereModel);
 
+		renderhelper::render(sphereModel);
 
 		// original for(auto& command : m_renderCommands)
 		/*for (size_t i = 0; i < m_commandsCount; i++)
@@ -323,6 +361,23 @@ namespace eng
 		//glUseProgram(0);
 
 		// --- In your main debug window ---
+
+
+		///////////////////////////////////////////////////////////////////////////
+		/// Draw Axis and Light
+		///////////////////////////////////////////////////////////////////////////
+		current_program = debugColorShaderProgram->GetProgramId();
+
+		auto start = vec3(0.0f, 0.0f, 0.0f);
+		auto end = vec3(10.0f, 0.0f, 0.0f);
+		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::RED);
+		end = vec3(0.0f, 10.0f, 0.0f);
+		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::GREEN);
+		end = vec3(0.0f, 0.0f, 10.0f);
+		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end, renderhelper::BLUE);
+		end = vec3(10.f) * -gLightDir;
+		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::YELLOW);
+
 		//ImGui::PushID("mag");
 
 		ImGui::Separator();
@@ -365,11 +420,11 @@ namespace eng
 			ImGui::Text("Active: %s", cameraNames[selectedCamera]);
 			ImGui::Separator();
 
-			ImGui::LabelText("Field of view",    "%.2f", pp.fov);
+			/*ImGui::LabelText("Field of view",    "%.2f", pp.fov);
 			ImGui::LabelText("Near plane",       "%.2f", pp.nearPlane);
 			ImGui::LabelText("Far plane",        "%.2f", pp.farPlane);
 			ImGui::LabelText("Viewport height",  "%d",   pp.height);
-			ImGui::LabelText("Viewport width",   "%d",   pp.width);
+			ImGui::LabelText("Viewport width",   "%d",   pp.width);*/
 			ImGui::LabelText("Camera Pos Z",     "%.2f", camera->Position().z);
 
 			ImGui::Separator();
@@ -410,22 +465,9 @@ namespace eng
 		if(ImGui::Button("Reload Shaders"))
 		{
 			loadShaders();
+			loadScreenSpaceShaders();
 		}
 
 		//ImGui::PopID();
-
-		///////////////////////////////////////////////////////////////////////////
-		/// Draw Axis and Light
-		///////////////////////////////////////////////////////////////////////////
-		auto start = vec3(0.0f, 0.0f, 0.0f);
-		auto end = vec3(10.0f, 0.0f, 0.0f);
-		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::RED);
-		end = vec3(0.0f, 10.0f, 0.0f);
-		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::GREEN);
-		end = vec3(0.0f, 0.0f, 10.0f);
-		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end, renderhelper::BLUE);
-		end = vec3(10.f) * -gLightDir;
-		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::YELLOW);
-
 	}
 }
