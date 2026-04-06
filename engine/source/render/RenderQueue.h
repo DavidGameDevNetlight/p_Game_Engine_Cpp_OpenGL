@@ -3,8 +3,10 @@
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
+#include <GL/glew.h>
 
-	using namespace glm;
+using namespace glm;
+
 namespace eng
 {
 	class Mesh;
@@ -23,13 +25,27 @@ namespace eng
 	//////////////////////////////////////////////////////////////
 	// Temporal public variables
 	//////////////////////////////////////////////////////////////
-	struct PerspectiveParamss
+	struct FrameBuffer
 	{
-		float	fov;
-		int		width;
-		int		height;
-		float	nearPlane;
-		float	farPlane;
+		/*unsigned int*/GLuint 	frameBufferId	= 0;
+		/*unsigned int*/GLuint	colorTexture	= 0;
+		/*unsigned int*/GLuint	depthTexture	= 0;
+		int	width			= 0;
+		int	height			= 0;
+		bool			isCompleted		= false;
+		FrameBuffer():
+		frameBufferId(0),
+		colorTexture(0),
+		depthTexture(0),
+		width(0),
+		height(0),
+		isCompleted(false){}
+		~FrameBuffer() = default;
+		void InitializeFrameBuffer(const int viewPortWidth, const int viewPortHeight);
+		void GenerateColorBuffer(const int viewPortWidth, const int viewPortHeight);
+		void GenerateDepthBuffer(const int viewPortWidth, const int viewPortHeight);
+		void resize(const int viewPortWidth, const int viewPortHeight);
+		void SetAsRenderTarget() const;
 	};
 
 	class RenderQueue

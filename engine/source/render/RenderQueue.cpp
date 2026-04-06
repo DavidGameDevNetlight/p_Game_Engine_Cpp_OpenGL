@@ -20,11 +20,24 @@ namespace eng
 {
 	//TODO: all of these are temporal debug variables that will be moved
 
+	FrameBuffer				offScreenRenderTarget;
+	struct FrameBuffer;
+	std::vector<FrameBuffer> fboList;
+	///////////////////////////////////////////////////////////////////////////////
+	// Framebuffers
+	///////////////////////////////////////////////////////////////////////////////
+
+
 
 	renderhelper::Model*	sphereModel						= nullptr;
+	// To shade meshes with the Bling-Phong Illumination model
 	ShaderProgram*			debugShaderProgram				= nullptr;
+	// To shade meshes with solid colors
 	ShaderProgram*			debugColorShaderProgram			= nullptr;
+	// To shade the near plane with an infinite background
 	ShaderProgram*			debugScreenSpaceShaderProgram	= nullptr;
+	// To shade sample the scene texture (color texture) and display the fina image to the default framebuffer
+	ShaderProgram*			debugCompositeShaderProgram		= nullptr;
 
 	Mesh*					debugScreenSpaceMesh			= nullptr;
 
@@ -32,7 +45,7 @@ namespace eng
 	GLuint			 		environmentMap;
 	GLuint			 		irradianceMap;
 	GLuint			 		reflectionMap;
-	const			 		std::string envmap_base_name	= "001";
+				 		std::string envmap_base_name	= "001";
 
 	vec3	gLightDir = normalize(vec3(0.0f, -1.0f, -1.0f));
 	vec3	spherePos = vec3(0.0f);
@@ -40,6 +53,73 @@ namespace eng
 							0.0f, 1.0f, 0.0f, 0.0f, // y
 							0.0f, 0.0f, 1.0f, 0.0f, // z
 							0.0f, 0.0f, 0.0f, 1.0f); // translation
+
+	void FrameBuffer::InitializeFrameBuffer(const int viewPortWidth, const int viewPortHeight) {
+		width = viewPortWidth;
+		height = viewPortHeight;
+		//////////////////////////////////////////
+		/// Generate color and depth texture
+		//////////////////////////////////////////
+		GenerateColorBuffer(width, height);
+		GenerateDepthBuffer(width, height);
+		//////////////////////////////////////////
+		/// Generate frame buffer
+		//////////////////////////////////////////
+		glGenFramebuffers(1, &frameBufferId);
+		glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+		//////////////////////////////////////////
+		/// Validate frame buffer
+		//////////////////////////////////////////
+		glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if(status != GL_FRAMEBUFFER_COMPLETE)
+			std::cerr<<"Framebuffer not complete \n";
+		//return (status == GL_FRAMEBUFFER_COMPLETE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	void FrameBuffer::GenerateColorBuffer(const int viewPortWidth, const int viewPortHeight)
+	{
+		glGenTextures(1, &colorTexture);
+		glBindTexture(GL_TEXTURE_2D, colorTexture);
+		//! NOTE: glTextureParameteri this is the Direct State Acces variant of glTexParameteri
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	}
+	void FrameBuffer::GenerateDepthBuffer(const int viewPortWidth, const int viewPortHeight)
+	{
+		glGenTextures(1, &depthTexture);
+		glBindTexture(GL_TEXTURE_2D, depthTexture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	}
+
+	void FrameBuffer::resize(int w, int h)
+	{
+		width = w;
+		height = h;
+		// Allocate a texture
+		glBindTexture(GL_TEXTURE_2D, colorTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+		// generate a depth texture
+		glBindTexture(GL_TEXTURE_2D, depthTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+					 nullptr);
+	}
+
+	void FrameBuffer::SetAsRenderTarget() const
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
+		glViewport(0,0, width, height); // The size of the window to render
+		glClearColor(1.f, 0.f, 0.f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 
 
 	RenderQueue::~RenderQueue()
@@ -51,6 +131,7 @@ namespace eng
 		delete debugShaderProgram;
 		delete debugScreenSpaceShaderProgram;
 		delete debugColorShaderProgram;
+		delete debugCompositeShaderProgram;
 	}
 
 	
@@ -133,6 +214,20 @@ namespace eng
 		std::string	ssFragmentShaderSource((std::istreambuf_iterator<char>(ssFragmentShaderFile)), std::istreambuf_iterator<char>());
 
 		debugScreenSpaceShaderProgram = Engine::GetInstance().GetGraphicsAPI().CreateShaderProgram(ssVertexShaderSource, ssFragmentShaderSource);
+
+		std::ifstream   compositeVertexShaderFile("../engine/source/render/renderHelper/debuggingRenderAssets/debug_composite.vert");
+		std::ifstream   compositeFragmentShaderFile("../engine/source/render/renderHelper/debuggingRenderAssets/debug_composite.frag");
+
+		if (!compositeVertexShaderFile.is_open() || !compositeFragmentShaderFile.is_open())
+			std::cerr << "ERROR: Failed to open shaders files!\n";
+		else
+			std::cout << "SUCCESS: Shaders files are open\n";
+
+		std::string	compositeVertexShaderSource((std::istreambuf_iterator<char>(compositeVertexShaderFile)), std::istreambuf_iterator<char>());
+		std::string	compositeFragmentShaderSource((std::istreambuf_iterator<char>(compositeFragmentShaderFile)), std::istreambuf_iterator<char>());
+
+		debugCompositeShaderProgram = Engine::GetInstance().GetGraphicsAPI().CreateShaderProgram(compositeVertexShaderSource, compositeFragmentShaderSource);
+
 	}
 
 	void RenderQueue::Init()
@@ -175,6 +270,7 @@ namespace eng
 		/// Texture Generation
 		///////////////////////////////////////////////////////////////
 		{
+			envmap_base_name = "sky";
 			renderhelper::HDRImage image("./assets/hdr/" + envmap_base_name + ".hdr");
 			// Generate handlers to the GPU resource
 			glGenTextures(1, &environmentMap);
@@ -188,6 +284,17 @@ namespace eng
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		}
+
+
+
+		///////////////////////////////////////////////////////////////////////////
+		// Setup Framebuffers
+		///////////////////////////////////////////////////////////////////////////
+		//const int numFbos = 1;
+		//for (size_t i = 0; i < numFbos; i++)
+		//{ fboList.push_back(FrameBuffer(DEFALT_WINDOW_WIDTH, DEFALT_WINDOW_HEIGHT));}
+		offScreenRenderTarget.InitializeFrameBuffer(DEFALT_WINDOW_WIDTH, DEFALT_WINDOW_HEIGHT);
+
 	}
 
 
@@ -277,22 +384,22 @@ namespace eng
 		const vec3		camPosition				= camera->Position();
 
 		//////////////////////////////////////////////////////////////
+		/// Rendering starts  Set frame buffer
+		//////////////////////////////////////////////////////////////
+		offScreenRenderTarget.SetAsRenderTarget();
+		//////////////////////////////////////////////////////////////
 		/// FullScreen Quad
 		//////////////////////////////////////////////////////////////
-
 		//	glActiveTexture(GL_TEXTURE0); // GLSL 420
-		// glBindTexture(GL_TEXTURE_2D, environmentMap);
-		current_program = debugScreenSpaceShaderProgram->GetProgramId();
-		glUseProgram(current_program);
+		// current_program = debugScreenSpaceShaderProgram->GetProgramId();
+		glUseProgram(debugScreenSpaceShaderProgram->GetProgramId());
 
 		// Get the uniforms' location
-
 		uniCameraPos				= glGetUniformLocation(current_program, "camera_pos");
 		const GLint uniEnvMultiplier			= glGetUniformLocation(current_program, "environment_multiplier");
 		const GLint uniInvProjectionViewMatrix	= glGetUniformLocation(current_program, "inv_PV");
 		const GLint uniEnvMap					= glGetUniformLocation(current_program, "environmentMap");
 		// Set the values for the GPU
-
 		glUniform3f(uniCameraPos, camPosition.x, camPosition.y, camPosition.z);
 		glUniform1f(uniEnvMultiplier, environment_multiplier);
 
@@ -323,8 +430,8 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 		// TODO: Updating the uniforms of the debug shader
 		//////////////////////////////////////////////////////////////
-		current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
-		glUseProgram(current_program);
+		//current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
+		glUseProgram(debugShaderProgram->GetProgramId());
 		//glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
 
 		uniCameraPos				= glGetUniformLocation(current_program, "cameraPosition");
@@ -378,6 +485,45 @@ namespace eng
 		end = vec3(10.f) * -gLightDir;
 		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::YELLOW);
 
+
+
+		//glBindTexture(GL_TEXTURE_2D,0);
+		//glUseProgram(0);
+
+		/////
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, DEFALT_WINDOW_WIDTH, DEFALT_WINDOW_HEIGHT);
+		glClearColor(1.f, 0.f, 1.f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		/////////////////////////////////////////////////////////////////
+		/// Render to default frame buffer by sampling the scene buffer
+		/////////////////////////////////////////////////////////////////
+		glUseProgram(debugCompositeShaderProgram->GetProgramId());
+
+		const GLuint uniSceneTexture = glGetUniformLocation(current_program, "sceneTexture");
+		const GLuint uniDepthTexture = glGetUniformLocation(current_program, "depthTexture");
+
+
+		glUniform1i(uniSceneTexture, 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, offScreenRenderTarget.colorTexture);
+
+		glUniform1i(uniSceneTexture, 1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, offScreenRenderTarget.depthTexture);
+
+		// Set uniforms
+		glGetBooleanv(GL_DEPTH_TEST, &depth_test_state);
+		glDisable(GL_DEPTH_TEST);
+		debugScreenSpaceMesh->Bind();
+		debugScreenSpaceMesh->Draw();
+
+		if (depth_test_state)
+			glEnable(GL_DEPTH_TEST);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
 		//ImGui::PushID("mag");
 
 		ImGui::Separator();

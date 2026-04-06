@@ -1,6 +1,6 @@
 #version 330 core
 
-layout(location = 0) in vec2 position; // Input to raterizer
+layout (location = 0) in vec2 position; // Input to raterizer
 out vec2 texCoord; // Input for the fragment shader
 
 void main() {
