@@ -1,6 +1,8 @@
 #include <Game.h>
 #include <GLFW/glfw3.h>
 #include "eng.h"
+#include <fstream>
+#include <streambuf>
 using eng::Engine;
 
 bool Game::Init()
@@ -8,41 +10,15 @@ bool Game::Init()
     //////////////////////////////////////////////////////////////
     // Shader sources
     //////////////////////////////////////////////////////////////
-    std::string vertexShaderSource = R"(
-        #version 330 core
-        
-        uniform vec3 uOffSet;
+    /*
+    std::ifstream   vertexShaderFile("./shaders/debug_lambert_diffuse.vert");
+    std::ifstream   fragmentShaderFile("./shaders/debug_lambert_diffuse.frag");
 
-        layout (location = 0) in vec3 position;
-        layout (location = 1) in vec3 color;
-        
-        out vec3 colorUV;
+    if (!vertexShaderFile.is_open() || !fragmentShaderFile.is_open())
+        std::cerr << "ERROR: Failed to open shaders files!\n";
 
-        void main()
-        {
-
-            gl_Position = vec4( position.x, position.y, position.z, 1.0);
-            //gl_Position = vec4( position.x + uOffSet.x , position.y + uOffSet.y, 0.0, 1.0);
-
-            colorUV = color;
-        }    
-
-    )";
-
-    std::string fragmentShaderSource = R"(
-        #version 330 core
-        
-        uniform vec4 uColor;
-        
-        in vec3 colorUV;
-        out vec4 FragColor;
-
-        void main()
-        {
-            FragColor = vec4(colorUV.r, colorUV.g, colorUV.b, 1.0);
-            //FragColor = vec4(uColor.r, uColor.g, uColor.b, 1.0);
-        }
-    )";
+    std::string     vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
+    std::string     fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
 
     // First time the GraphicsAPI gets instantiated
 
@@ -59,11 +35,11 @@ bool Game::Init()
 
     float rectangleVertices[RECT_VERTICES_DATA_SIZE] =
     {
-        //x     y       z       R       G       B
-        0.5f,   0.5f,  0.0f,   1.0f,   0.0f,    0.0f,
-       -0.5f,   0.5f,  0.0f,   0.0f,   1.0f,    0.0f,
-       -0.5f,  -0.5f,  0.0f,   0.0f,   0.0f,    1.0f,
-        0.5f,  -0.5f,  0.0f,   1.0f,   1.0f,    0.0f
+         0.0f,     0.5f,  -40.0f,   1.0f,   0.0f,    0.0f,
+         0.0f,   -10.0f,  -40.0f,   0.0f,   1.0f,    0.0f,
+        10.0f,   -10.0f,  -40.0f,   0.0f,   0.0f,    1.0f,
+        10.5f,     0.0f,  -40.0f,   1.0f,   1.0f,    0.0f
+
     };
 
     unsigned int rectangleIndices[RECT_INDICES_SIZE] =
@@ -84,14 +60,14 @@ bool Game::Init()
     size_t totalFComponentsCount    = RECT_VERTICES_DATA_SIZE;
 
     m_mesh = new eng::Mesh(vertexLayout, &rectangleVertices[0], totalFComponentsCount, &rectangleIndices[0], RECT_INDICES_SIZE);
-
+    */
 	return true;
 }
 
 void Game::Update(float deltaTime)
 {
 	//std::cout << "Delta time: " << deltaTime << "\n";
-	
+	/*
 	auto& inputManager = Engine::GetInstance().GetInputManager();
 	if(inputManager.IsKeyPressed(GLFW_KEY_A))
 		std::cout << "Key[A]: Pressed! \n";
@@ -102,10 +78,13 @@ void Game::Update(float deltaTime)
 
     auto& renderQueue = Engine::GetInstance().GetRenderQueue();
     renderQueue.Submit(command);
+    */
 }
 
 void Game::Destroy()
 {
+    /*
     delete m_mesh;
     m_mesh = nullptr;
+    */
 }

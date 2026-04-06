@@ -2,6 +2,7 @@
 #include "Application.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "render/Camera.h"
 
 namespace eng
 {
@@ -29,6 +30,7 @@ namespace eng
 	{
 		delete m_app;
 		m_app = nullptr;
+
 	}
 
 	bool Engine::Init(unsigned int width, unsigned int height)
@@ -38,6 +40,27 @@ namespace eng
 
 		if (!CreateWindow(width, height, "Profetics Engine"))
 			return false;
+
+		///////////////////////////////////////////////////////////////////////
+		// ImGUI
+		///////////////////////////////////////////////////////////////////////
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(m_window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+		ImGui_ImplOpenGL3_Init();
+		///////////////////////////////////////////////////////////////////////
+
+
+
+		// TODO added render queue init
+		GetRenderQueue().Init();
+		InitializeCamera(); // TODO: define where to init
 
 		return m_app->Init();
 	};
@@ -50,6 +73,7 @@ namespace eng
 		m_lastTimePoint = std::chrono::high_resolution_clock::now();
 		float deltaTime = 0.f;
 
+
 		///////////////////////////////////////////////////////////////////////
 		// THE GAME LOOP
 		///////////////////////////////////////////////////////////////////////
@@ -57,16 +81,45 @@ namespace eng
 		{
 			// Handle user inputs
 			glfwPollEvents();
-			
+
+			///////////////////////////////////////////////////////////////////////
+			// ImGUI
+			///////////////////////////////////////////////////////////////////////
+			// Start the Dear ImGui frame
+			int value = 0;
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			/*ImGui::PushID("mag");
+			ImGui::Text("Camera setting");
+			ImGui::RadioButton("An option", &value, 0);
+			ImGui::PopID();*/
+			//ImGui::ShowDemoWindow(); // Show demo window! :)
+			///////////////////////////////////////////////////////////////////////
+
 			// Update game logic
 			UpdateDeltaTime(deltaTime);
+
+			m_activeCamera.Update(deltaTime);
+
 			m_app->Update(deltaTime);
 
-			m_graphicsApi.SetClearColor(0.f, 0.f, 0.f, 1.f);
+			m_graphicsApi.SetClearColor(1.f, 1.f, 1.f, 1.f);
 			m_graphicsApi.ClearBuffers();
 
 			m_renderQueue.Draw(m_graphicsApi);
 			
+
+			///////////////////////////////////////////////////////////////////////
+			// ImGUI
+			///////////////////////////////////////////////////////////////////////
+			// Rendering
+			// (Your code clears your framebuffer, renders your other stuff etc.)
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			// (Your code calls glfwSwapBuffers() etc.)
+			///////////////////////////////////////////////////////////////////////
+
 			// Handle rendering
 			glfwSwapBuffers(m_window);
 
@@ -77,6 +130,14 @@ namespace eng
 	{
 		if (m_app)
 		{
+			///////////////////////////////////////////////////////////////////////
+			// ImGUI
+			///////////////////////////////////////////////////////////////////////
+			ImGui_ImplOpenGL3_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+			ImGui::DestroyContext();
+			///////////////////////////////////////////////////////////////////////
+
 			m_app->Destroy(); // logical clean up only
 			glfwTerminate();
 			m_window = nullptr;
@@ -110,6 +171,11 @@ namespace eng
 		return m_renderQueue;
 	}
 
+	ActiveCamera&	Engine::GetMainCamera()
+	{
+		return m_activeCamera;
+	}
+
 	///////////////////////////////////////////////////////////////////
 	// Privates
 	///////////////////////////////////////////////////////////////////
@@ -135,6 +201,7 @@ namespace eng
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 		glewExperimental = GL_TRUE;
 #endif
+
 		// Create a window and validate
 		m_window = glfwCreateWindow( width, height, title, nullptr, nullptr);
 		if (m_window == nullptr)
@@ -166,6 +233,40 @@ namespace eng
 		auto now = std::chrono::high_resolution_clock::now();
 		timeToUpdate = std::chrono::duration<float>(now - m_lastTimePoint).count();
 		m_lastTimePoint = now;
+		m_deltaTime = timeToUpdate;
+	}
+
+	float Engine::GetDeltaTime() const
+	{
+		return m_deltaTime;
+	}
+
+	const World& Engine::GetWorld() const
+	{
+		return m_world;
+	}
+
+	void Engine::InitializeCamera()
+	{
+		std::cout << "{   x: " <<m_world.worldUp.x
+					<< ", y: " <<m_world.worldUp.y
+					<< ", z: " <<m_world.worldUp.z
+					<< "}\n";
+
+		PerspectiveParams	pp;
+		pp.width        = DEFALT_WINDOW_WIDTH;
+		pp.height       = DEFALT_WINDOW_HEIGHT;
+		pp.fov          = 45.0f;
+		pp.nearPlane    = 0.1f;
+		pp.farPlane     = 300.f;
+		pp.aspectRatio  = static_cast<float>(pp.width) / static_cast<float>(pp.height);
+
+		m_cameras[0] = new Camera();
+		m_cameras[0]->InitializeCamera(GetWorld().worldUp, pp);
+		m_cameras[0]->SetCameraId(1);
+
+		m_activeCamera.SetActiveCamera(*m_cameras[0] );
+
 	}
 
 }

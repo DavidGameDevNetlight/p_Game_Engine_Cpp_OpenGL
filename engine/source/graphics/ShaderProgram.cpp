@@ -12,6 +12,10 @@ namespace eng
 		glDeleteProgram(m_shaderProgramId);
 	};
 
+	const GLuint ShaderProgram::GetProgramId() const{
+		return m_shaderProgramId;
+	}
+
 	void ShaderProgram::Bind() const
 	{
 		glUseProgram(m_shaderProgramId);
@@ -22,6 +26,20 @@ namespace eng
 		auto uniformLocation = GetUniformLocation(uniformName);
 		glUniform1f(uniformLocation, value);
 	}
+
+	void  ShaderProgram::SetUniform3Float(const string& uniformName, vec3 vector)
+	{
+		auto uniformLocation = GetUniformLocation(uniformName);
+		glUniform3f(uniformLocation, vector.x, vector.y, vector.z);
+	}
+
+
+	void ShaderProgram::SetProjectionMatrix(const string& matrixName, mat4 matrix)
+	{
+		auto uniformLocation = GetUniformLocation(matrixName);
+		glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0].x);
+	}
+
 
 	GLint ShaderProgram::GetUniformLocation(const string& uniformName)
 	{

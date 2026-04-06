@@ -1,12 +1,19 @@
 #pragma once
-
 #include <cstddef>
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
+#include <GL/glew.h>
+
+using namespace glm;
 
 namespace eng
 {
 	class Mesh;
 	class Material;
 	class GraphicsAPI;
+
+	class Camera;
 
 	// TODO print the size of one RenderCommand, it should be 16 bytes, as it container only 2 pointers
 	struct RenderCommand
@@ -15,18 +22,67 @@ namespace eng
 		Material*	material	= nullptr;
 	};
 
+	//////////////////////////////////////////////////////////////
+	// Temporal public variables
+	//////////////////////////////////////////////////////////////
+	struct FrameBuffer
+	{
+		/*unsigned int*/GLuint 	frameBufferId	= 0;
+		/*unsigned int*/GLuint	colorTexture	= 0;
+		/*unsigned int*/GLuint	depthTexture	= 0;
+		int	width			= 0;
+		int	height			= 0;
+		bool			isCompleted		= false;
+		FrameBuffer():
+		frameBufferId(0),
+		colorTexture(0),
+		depthTexture(0),
+		width(0),
+		height(0),
+		isCompleted(false){}
+		~FrameBuffer() = default;
+		void InitializeFrameBuffer(const int viewPortWidth, const int viewPortHeight);
+		void GenerateColorBuffer(const int viewPortWidth, const int viewPortHeight);
+		void GenerateDepthBuffer(const int viewPortWidth, const int viewPortHeight);
+		void resize(const int viewPortWidth, const int viewPortHeight);
+		void SetAsRenderTarget() const;
+	};
+
 	class RenderQueue
 	{
 	public:
 		
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		~RenderQueue();
+
+		// TODO: Temporarily adding an Init for Debug meshes
+		void Init();
 
 		// original const RenderComman& commandd
 		void Submit(const RenderCommand& command);
 		void Draw(GraphicsAPI& graphicsApi);
+
+		//////////////////////////////////////////////////////////////
+		// Temporal public variables
+		//////////////////////////////////////////////////////////////
+		//vec3	worldUp				= vec3(0.0f, 1.0f, 0.0f);
+		//vec3	worldRight			= vec3(1.0f, 0.0f, 0.0f);
+		//vec3	worldForward		= vec3(0.0f, 0.0f, 1.0f);
+
+		//ivec2	prevMouseCoords 	= { -1, -1 };
+		//bool	isMouseDragging 	= false;
+		// Camera params
+		Camera* camera = nullptr;
+		//vec3	cameraPosition 		= vec3(15.0f, 15.0f, 15.0f);
+		//vec3	cameraDirection		= vec3(-1.0f, -1.0f, -1.0f);
+		//mat4	T					= mat4(1.0f);
+		//mat4	R					= mat4(1.0f);
+
+		//PerspectiveParamss	pp		= { 45.0f, 1280, 720, 0.1f, 300.0f };
+		//int 				old_w 	= 1280;
+		//int 				old_h 	= 720;
 
 	private:
 		static const size_t RENDER_COMMANDS_SIZE = 100;

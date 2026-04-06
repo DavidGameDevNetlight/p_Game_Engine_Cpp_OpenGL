@@ -13,6 +13,19 @@ namespace eng
 		m_shaderProgram = shaderProgram;	// Takes ownership of the memory
 	}
 
+	void Material::SetMaterialProjectionMatrix(const string& matrixName, const mat4& matrix) const
+	{
+		if (!m_shaderProgram) return;
+		m_shaderProgram->SetProjectionMatrix(matrixName,matrix);
+	}
+
+	void Material::SetCameraPosition(const string& cameraName, const vec3& position) const
+	{
+		if (!m_shaderProgram) return;
+		m_shaderProgram->SetUniform3Float(cameraName, position);
+	}
+
+
 	void Material::SetMaterialParameters(const string& paramName, float value)
 	{
 		m_parameters[paramName] = value;

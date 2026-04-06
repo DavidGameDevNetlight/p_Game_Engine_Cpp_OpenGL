@@ -10,10 +10,19 @@ set(PROJECT_SOURCE_FILES
     source/Game.cpp
 )
 
-# Adds source/ to the header searc path
+# ------------------------------------------------------- Shaders
+file(GLOB_RECURSE SHADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/source/shaders/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/source/shaders/*.frag"
+)
+
+source_group("Shaders" FILES ${SHADERS})
+
+# -------------------------------------------------------
+# Adds source/ to the header search path
 include_directories(source)
 # Build executable target called GameDevelopmentProject
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_FILES} ${SHADERS})
 
 # -------- GLEW and GLFW are included through the Engine module, so we link the Engine library
 
@@ -25,4 +34,11 @@ target_link_libraries(${PROJECT_NAME}
     Engine
 )
 
-
+# ---------------- POST BUILD COMMANDS
+# Copy shaders to build output directory so the exe can find them at runtime
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/source/shaders"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+        COMMENT "Copying shaders to build directory"
+)

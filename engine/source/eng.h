@@ -12,6 +12,8 @@
 #include "render/Mesh.h"
 #include "render/RenderQueue.h"
 
+#include "render/Camera.h"
+
 /**
 * This header file exposes the core libraries of the engine
 */
