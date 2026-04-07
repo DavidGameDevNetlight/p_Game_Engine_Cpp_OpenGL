@@ -40,7 +40,7 @@ namespace eng
 		width(0),
 		height(0),
 		isCompleted(false){}
-		~FrameBuffer() = default;
+		~FrameBuffer();
 		void InitializeFrameBuffer(const int viewPortWidth, const int viewPortHeight);
 		void GenerateColorBuffer(const int viewPortWidth, const int viewPortHeight);
 		void GenerateDepthBuffer(const int viewPortWidth, const int viewPortHeight);

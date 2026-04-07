@@ -80,6 +80,13 @@ namespace eng
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	FrameBuffer::~FrameBuffer()
+	{
+		glDeleteTextures(1, &colorTexture);
+		glDeleteTextures(1, &depthTexture);
+		glDeleteFramebuffers(1, &frameBufferId);
+	}
+
 	void FrameBuffer::GenerateColorBuffer(const int viewPortWidth, const int viewPortHeight)
 	{
 		glGenTextures(1, &colorTexture);
@@ -307,7 +314,7 @@ namespace eng
 
 		offScreenRenderTarget.InitializeFrameBuffer(Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight);
 		m_frameBuffers = new FrameBuffer[FRAME_BUFFERS_COUNT];
-		m_frameBuffers = &offScreenRenderTarget;
+		m_frameBuffers[0] = offScreenRenderTarget;
 	}
 
 
@@ -318,7 +325,7 @@ namespace eng
 		const		World&			worldCoord			= Engine::GetInstance().GetWorld();
 					auto&			inputManager		= Engine::GetInstance().GetInputManager();
 					GLuint			current_program 	= 0;
-					GLuint			uniCameraPos		= 0;
+					GLint			uniCameraPos		= 0;
 					ActiveCamera&	activeCamera		= Engine::GetInstance().GetMainCamera();
 									camera				= activeCamera.GetActiveCamera();
 		//////////////////////////////////////////////////////////////
@@ -397,17 +404,11 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 		/// Rendering starts  Set frame buffer
 		//////////////////////////////////////////////////////////////
-		//offScreenRenderTarget.SetAsRenderTarget();
 		m_frameBuffers[0].SetAsRenderTarget();
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		//glViewport(0,0, Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight); // The size of the window to render
-		//glClearColor(1.f, 0.f, 0.f, 1.0f);
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//////////////////////////////////////////////////////////////
 		/// FullScreen Quad
 		//////////////////////////////////////////////////////////////
-		//	glActiveTexture(GL_TEXTURE0); // GLSL 420
 		current_program = debugScreenSpaceShaderProgram->GetProgramId();
 		glUseProgram(current_program);
 
@@ -431,7 +432,7 @@ namespace eng
 
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, environmentMap);
-		// Use the program
+
 		GLboolean depth_test_state;
 		glGetBooleanv(GL_DEPTH_TEST, &depth_test_state);
 		glDisable(GL_DEPTH_TEST);
@@ -447,9 +448,8 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 		// TODO: Updating the uniforms of the debug shader
 		//////////////////////////////////////////////////////////////
-		current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
+		current_program = debugShaderProgram->GetProgramId();
 		glUseProgram(current_program);
-		//glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
 
 		uniCameraPos				= glGetUniformLocation(current_program, "cameraPosition");
 		const int uniModelMatrix	= glGetUniformLocation(current_program, "modelMatrix");
@@ -492,7 +492,7 @@ namespace eng
 		///////////////////////////////////////////////////////////////////////////
 		current_program = debugColorShaderProgram->GetProgramId();
 
-		auto start = vec3(0.0f, 0.0f, 0.0f);
+		const vec3 start{0};
 		auto end = vec3(10.0f, 0.0f, 0.0f);
 		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::RED);
 		end = vec3(0.0f, 10.0f, 0.0f);
@@ -502,13 +502,7 @@ namespace eng
 		end = vec3(10.f) * -gLightDir;
 		renderhelper::drawLineSegment( current_program, viewMatrix, projectionMatrix, start, end,renderhelper::YELLOW);
 
-
-
-		//glBindTexture(GL_TEXTURE_2D,0);
-		//glUseProgram(0);
-
 		/////
-
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight);
 		glClearColor(1.f, 0.f, 1.f, 1.0f);
@@ -531,7 +525,6 @@ namespace eng
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, offScreenRenderTarget.depthTexture);
 
-		// Set uniforms
 		glGetBooleanv(GL_DEPTH_TEST, &depth_test_state);
 		glDisable(GL_DEPTH_TEST);
 		debugScreenSpaceMesh->Bind();
@@ -545,7 +538,6 @@ namespace eng
 		/////////////////////////////////////////////////////////////////
 		/// GUI
 		/////////////////////////////////////////////////////////////////
-
 		//ImGui::PushID("mag");
 		ImGui::Separator();
 		static int selectedCamera = 0;

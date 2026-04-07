@@ -58,6 +58,8 @@ include_directories(source)
 # Including the Engine as a library
 add_library(${PROJECT_NAME} ${PROJECT_SOURCE_FILES})
 
+# ------------------------------------- ASan (remove before shipping) --- this allows to track heap allocations
+target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
 
 # --------------------------------------------------------------------- Add GLFW Library
 # Configure and build GLFW from sources, placing build artifacts in /glfw_build
