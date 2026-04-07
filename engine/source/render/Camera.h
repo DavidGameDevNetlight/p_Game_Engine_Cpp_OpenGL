@@ -27,6 +27,7 @@ namespace eng {
         void InitializeCamera(const vec3& worldUp);
 
         void Update(float deltaTime);
+        void ResizeAspectRatio(const int width, const int height);
         void SetCameraId(const int id);
         const int GetId() const;
 

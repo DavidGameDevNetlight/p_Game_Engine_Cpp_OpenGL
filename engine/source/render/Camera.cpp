@@ -6,7 +6,6 @@
 #include "Engine.h"
 
 namespace eng {
-
     /*Camera::Camera(const PerspectiveParams& perspectiveParams)
     {
         m_perspectiveParams.width = perspectiveParams.width;
@@ -20,12 +19,15 @@ namespace eng {
 
     void Camera::InitializeCamera(const vec3& worldUp) {
 
-        m_perspectiveParams.width        = DEFALT_WINDOW_WIDTH;
-        m_perspectiveParams.height       = DEFALT_WINDOW_HEIGHT;
+
+        const Window windowInPixels = Engine::GetInstance().GetWindow();
+
+        m_perspectiveParams.width        = windowInPixels.pixelWidth;
+        m_perspectiveParams.height       = windowInPixels.pixelHeight;
         m_perspectiveParams.fov          = 45.0f;
         m_perspectiveParams.nearPlane    = 0.1f;
         m_perspectiveParams.farPlane     = 300.f;
-        m_perspectiveParams.aspectRatio  = static_cast<float>(DEFALT_WINDOW_WIDTH) / static_cast<float>(DEFALT_WINDOW_HEIGHT);
+        m_perspectiveParams.aspectRatio  = static_cast<float>(windowInPixels.pixelWidth) / static_cast<float>(windowInPixels.pixelHeight);
 
         m_id = 0;
         m_cameraPosition 	= vec3(10.0f, 10.0f, 10.0f);
@@ -106,10 +108,18 @@ namespace eng {
         m_cameraBaseVectorWorldSpace    = mat3(m_cameraRight, m_cameraUp, -m_cameraDirection);
         m_cameraRotation			 = transpose(m_cameraBaseVectorWorldSpace);
 
-		m_cameraViewMatrix				= m_cameraRotation * translate(-m_cameraPosition);
+        m_cameraViewMatrix				= m_cameraRotation * translate(-m_cameraPosition);
         m_cameraProjectionMatrix        =  perspective(radians(m_perspectiveParams.fov),
                                                             m_perspectiveParams.aspectRatio,
                                                             m_perspectiveParams.nearPlane,
                                                             m_perspectiveParams.farPlane);
     }
+
+    void Camera::ResizeAspectRatio(const int newWidth, const int newHeight)
+    {
+        m_perspectiveParams.width       = newWidth;
+        m_perspectiveParams.height      = newHeight;
+        m_perspectiveParams.aspectRatio = static_cast<float>(newWidth) / static_cast<float>(newHeight);
+    }
+
 } // eng

@@ -38,7 +38,7 @@ namespace eng
 		if (!m_app)
 			return false;
 
-		if (!CreateWindow(width, height, "Profetics Engine"))
+		if (!CreateWindow(width, height, "The Sleipnir Engine"))
 			return false;
 
 		///////////////////////////////////////////////////////////////////////
@@ -56,11 +56,12 @@ namespace eng
 		ImGui_ImplOpenGL3_Init();
 		///////////////////////////////////////////////////////////////////////
 
-
+		glfwSetFramebufferSizeCallback(m_window, OnEngineFrameBufferResize);
 
 		// TODO added render queue init
 		GetRenderQueue().Init();
-		InitializeCamera(); // TODO: define where to init
+		// TODO: define where to init. Ideally, there must be a distinction between a physical 3D camera during Gameplay, and the virtual "camera" that enables rendering on the Menu
+		InitializeCamera();
 
 		return m_app->Init();
 	};
@@ -225,6 +226,13 @@ namespace eng
 			return false;
 		}
 
+		// Read GLFW framebuffer
+		int fbWidth, fbHeight;
+		glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+		glViewport(0, 0, fbWidth, fbHeight);
+		g_window.pixelHeight = fbHeight;
+		g_window.pixelWidth = fbWidth;
+
 		return true;
 	}
 
@@ -246,6 +254,10 @@ namespace eng
 		return m_world;
 	}
 
+	const Window& Engine::GetWindow() const {
+		return g_window;
+	}
+
 	void Engine::InitializeCamera()
 	{
 		std::cout << "{   x: " <<m_world.worldUp.x
@@ -254,19 +266,29 @@ namespace eng
 					<< "}\n";
 
 		PerspectiveParams	pp;
-		pp.width        = DEFALT_WINDOW_WIDTH;
-		pp.height       = DEFALT_WINDOW_HEIGHT;
+		pp.width        = g_window.pixelWidth;
+		pp.height       = g_window.pixelHeight;
 		pp.fov          = 45.0f;
 		pp.nearPlane    = 0.1f;
 		pp.farPlane     = 300.f;
 		pp.aspectRatio  = static_cast<float>(pp.width) / static_cast<float>(pp.height);
 
-		m_cameras[0] = new Camera();
+		m_cameras[0] = new Camera(); // TODO make sure either the Engine destroys this
 		m_cameras[0]->InitializeCamera(GetWorld().worldUp, pp);
 		m_cameras[0]->SetCameraId(1);
 
 		m_activeCamera.SetActiveCamera(*m_cameras[0] );
 
 	}
+
+	void Engine::OnEngineFrameBufferResize(GLFWwindow* resizedWindow, int newPixelsWidth, int newPixelsHeight)
+	{
+		// It should call whatever holds the references to the list of FrameBuffers
+		GetInstance().g_window.pixelWidth	= newPixelsWidth;
+		GetInstance().g_window.pixelHeight	= newPixelsHeight;
+
+		GetInstance().GetRenderQueue().ResizeRenderTargets(newPixelsWidth, newPixelsHeight);
+	}
+
 
 }

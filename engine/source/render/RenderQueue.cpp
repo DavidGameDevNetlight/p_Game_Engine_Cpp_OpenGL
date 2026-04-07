@@ -28,7 +28,6 @@ namespace eng
 	///////////////////////////////////////////////////////////////////////////////
 
 
-
 	renderhelper::Model*	sphereModel						= nullptr;
 	// To shade meshes with the Bling-Phong Illumination model
 	ShaderProgram*			debugShaderProgram				= nullptr;
@@ -88,7 +87,7 @@ namespace eng
 		//! NOTE: glTextureParameteri this is the Direct State Acces variant of glTexParameteri
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, viewPortWidth, viewPortHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	}
 	void FrameBuffer::GenerateDepthBuffer(const int viewPortWidth, const int viewPortHeight)
 	{
@@ -96,27 +95,34 @@ namespace eng
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, viewPortWidth, viewPortHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	}
 
 	void FrameBuffer::resize(int w, int h)
 	{
 		width = w;
 		height = h;
+
+		// One could explicitly delete the texture resources using
+		// glDeleteTextures(1, &colorTexture);
+		// glDeleteTextures(1, &depthTexture);
+		// Non-theless, OpenGL discard the old allocation and create a new one internally
+
 		// Allocate a texture
 		glBindTexture(GL_TEXTURE_2D, colorTexture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
 		// generate a depth texture
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
-					 nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	void FrameBuffer::SetAsRenderTarget() const
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
-		glViewport(0,0, width, height); // The size of the window to render
+		glViewport(0,0, Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight); // The size of the window to render
 		glClearColor(1.f, 0.f, 0.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
@@ -132,6 +138,11 @@ namespace eng
 		delete debugScreenSpaceShaderProgram;
 		delete debugColorShaderProgram;
 		delete debugCompositeShaderProgram;
+
+		//////////////////////////////////////////////////////////////
+		/// Framebuffers management
+		//////////////////////////////////////////////////////////////
+		delete[] m_frameBuffers;
 	}
 
 	
@@ -181,7 +192,7 @@ namespace eng
 
 		std::string	vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
 		std::string	fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
-
+		//std::cout << "fragment shader: " << fragmentShaderSource << "\n";
 		debugShaderProgram = Engine::GetInstance().GetGraphicsAPI().CreateShaderProgram(vertexShaderSource, fragmentShaderSource);
 		//glUseProgram(debugShaderProgram->GetProgramId());
 
@@ -253,12 +264,12 @@ namespace eng
 		unsigned	int		quadIndices[QUAD_INDICES_SIZE] =
 		{
 			0, 1, 2, // Triangle 1
-			1, 3, 2	 // Tringle 2
+			2, 1, 3	 // Tringle 2
 		};
 
 		VertexLayout vertexLayout;
-		vertexLayout.elementsCount = ELEMENTS_COUNT;
-		vertexLayout.elements = new VertexElement[ELEMENTS_COUNT]{};
+		vertexLayout.elementsCount = 1;
+		vertexLayout.elements = new VertexElement[1]{};
 		vertexLayout.elements[0] = {0,2,GL_FLOAT,0};
 		vertexLayout.stride             = sizeof(float) * vertexLayout.elements[0].size;
 		size_t totalFComponentsCount    = ELEMENTS_COUNT;
@@ -293,25 +304,27 @@ namespace eng
 		//const int numFbos = 1;
 		//for (size_t i = 0; i < numFbos; i++)
 		//{ fboList.push_back(FrameBuffer(DEFALT_WINDOW_WIDTH, DEFALT_WINDOW_HEIGHT));}
-		offScreenRenderTarget.InitializeFrameBuffer(DEFALT_WINDOW_WIDTH, DEFALT_WINDOW_HEIGHT);
 
+		offScreenRenderTarget.InitializeFrameBuffer(Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight);
+		m_frameBuffers = new FrameBuffer[FRAME_BUFFERS_COUNT];
+		m_frameBuffers = &offScreenRenderTarget;
 	}
 
 
 
 	void RenderQueue::Draw(GraphicsAPI& graphicsApi)
 	{
-		ActiveCamera& acticeCamera = Engine::GetInstance().GetMainCamera();
-		const World& worldCoord = Engine::GetInstance().GetWorld();
-		camera = acticeCamera.GetActiveCamera();
-		const float cameraMoveSpeed = 5.0f;
-		GLuint current_program = 0;
-		GLuint uniCameraPos = 0;
+		constexpr	float			cameraMoveSpeed 	= 5.0f;
+		const		World&			worldCoord			= Engine::GetInstance().GetWorld();
+					auto&			inputManager		= Engine::GetInstance().GetInputManager();
+					GLuint			current_program 	= 0;
+					GLuint			uniCameraPos		= 0;
+					ActiveCamera&	activeCamera		= Engine::GetInstance().GetMainCamera();
+									camera				= activeCamera.GetActiveCamera();
 		//////////////////////////////////////////////////////////////
 		// Updating camera position
 		//////////////////////////////////////////////////////////////
 
-		auto& inputManager = Engine::GetInstance().GetInputManager();
 		float delta = cameraMoveSpeed * Engine::GetInstance().GetDeltaTime();
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_W))
@@ -322,7 +335,6 @@ namespace eng
 			std::cout << camera->Position().y << " camera.Pos.Y\n";
 			std::cout << camera->Position().z << " camera.Pos.Z\n";
 		}
-
 
 		if(inputManager.IsKeyPressed(GLFW_KEY_S))
 		{
@@ -341,7 +353,6 @@ namespace eng
 			camera->Position() -= camera->Right() * delta;
 			std::cout << "Key[A]: Pressed! \n";
 		}
-
 
 		//////////////////////////////////////////////////////////////
 		// Updating sphere position
@@ -386,16 +397,22 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 		/// Rendering starts  Set frame buffer
 		//////////////////////////////////////////////////////////////
-		offScreenRenderTarget.SetAsRenderTarget();
+		//offScreenRenderTarget.SetAsRenderTarget();
+		m_frameBuffers[0].SetAsRenderTarget();
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//glViewport(0,0, Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight); // The size of the window to render
+		//glClearColor(1.f, 0.f, 0.f, 1.0f);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		//////////////////////////////////////////////////////////////
 		/// FullScreen Quad
 		//////////////////////////////////////////////////////////////
 		//	glActiveTexture(GL_TEXTURE0); // GLSL 420
-		// current_program = debugScreenSpaceShaderProgram->GetProgramId();
-		glUseProgram(debugScreenSpaceShaderProgram->GetProgramId());
+		current_program = debugScreenSpaceShaderProgram->GetProgramId();
+		glUseProgram(current_program);
 
 		// Get the uniforms' location
-		uniCameraPos				= glGetUniformLocation(current_program, "camera_pos");
+					uniCameraPos				= glGetUniformLocation(current_program, "camera_pos");
 		const GLint uniEnvMultiplier			= glGetUniformLocation(current_program, "environment_multiplier");
 		const GLint uniInvProjectionViewMatrix	= glGetUniformLocation(current_program, "inv_PV");
 		const GLint uniEnvMap					= glGetUniformLocation(current_program, "environmentMap");
@@ -430,8 +447,8 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 		// TODO: Updating the uniforms of the debug shader
 		//////////////////////////////////////////////////////////////
-		//current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
-		glUseProgram(debugShaderProgram->GetProgramId());
+		current_program = debugShaderProgram->GetProgramId(); // chick solution to get the debug_lambert_diffuse shader
+		glUseProgram(current_program);
 		//glGetIntegerv(GL_CURRENT_PROGRAM, &current_program);
 
 		uniCameraPos				= glGetUniformLocation(current_program, "cameraPosition");
@@ -493,24 +510,24 @@ namespace eng
 		/////
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, DEFALT_WINDOW_WIDTH, DEFALT_WINDOW_HEIGHT);
+		glViewport(0, 0, Engine::GetInstance().GetWindow().pixelWidth, Engine::GetInstance().GetWindow().pixelHeight);
 		glClearColor(1.f, 0.f, 1.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		/////////////////////////////////////////////////////////////////
 		/// Render to default frame buffer by sampling the scene buffer
 		/////////////////////////////////////////////////////////////////
+		current_program = debugCompositeShaderProgram->GetProgramId();
 		glUseProgram(debugCompositeShaderProgram->GetProgramId());
 
-		const GLuint uniSceneTexture = glGetUniformLocation(current_program, "sceneTexture");
-		const GLuint uniDepthTexture = glGetUniformLocation(current_program, "depthTexture");
-
+		const GLint uniSceneTexture = glGetUniformLocation(current_program, "sceneTexture");
+		const GLint uniDepthTexture = glGetUniformLocation(current_program, "depthTexture");
 
 		glUniform1i(uniSceneTexture, 0);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, offScreenRenderTarget.colorTexture);
 
-		glUniform1i(uniSceneTexture, 1);
+		glUniform1i(uniDepthTexture, 1);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, offScreenRenderTarget.depthTexture);
 
@@ -524,10 +541,13 @@ namespace eng
 			glEnable(GL_DEPTH_TEST);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
+
+		/////////////////////////////////////////////////////////////////
+		/// GUI
+		/////////////////////////////////////////////////////////////////
+
 		//ImGui::PushID("mag");
-
 		ImGui::Separator();
-
 		static int selectedCamera = 0;
 		static bool showCameraWindow = false;
 
@@ -565,12 +585,11 @@ namespace eng
 
 			ImGui::Text("Active: %s", cameraNames[selectedCamera]);
 			ImGui::Separator();
-
-			/*ImGui::LabelText("Field of view",    "%.2f", pp.fov);
-			ImGui::LabelText("Near plane",       "%.2f", pp.nearPlane);
-			ImGui::LabelText("Far plane",        "%.2f", pp.farPlane);
-			ImGui::LabelText("Viewport height",  "%d",   pp.height);
-			ImGui::LabelText("Viewport width",   "%d",   pp.width);*/
+			//ImGui::LabelText("Field of view",    "%.2f", pp.fov);
+			//ImGui::LabelText("Near plane",       "%.2f", pp.nearPlane);
+			//ImGui::LabelText("Far plane",        "%.2f", pp.farPlane);
+			//ImGui::LabelText("Viewport height",  "%d",   pp.height);
+			//ImGui::LabelText("Viewport width",   "%d",   pp.width);
 			ImGui::LabelText("Camera Pos Z",     "%.2f", camera->Position().z);
 
 			ImGui::Separator();
@@ -616,4 +635,16 @@ namespace eng
 
 		//ImGui::PopID();
 	}
+
+	void RenderQueue::ResizeRenderTargets(const int newPixelsWidth, const int newPixelsHeight)
+	{
+		std::cout << "Resizing RenderTargets ... " << std::endl;
+		Engine::GetInstance().GetMainCamera().GetActiveCamera()->ResizeAspectRatio(newPixelsWidth, newPixelsHeight);
+
+		for (int i = 0; i < FRAME_BUFFERS_COUNT; i++)
+		{
+			m_frameBuffers[i].resize(newPixelsWidth,newPixelsHeight);
+		}
+	}
+
 }

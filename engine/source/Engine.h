@@ -37,6 +37,12 @@ namespace eng
 		vec3	worldForward		= vec3(0.0f, 0.0f, 1.0f);
 	};
 
+	struct Window
+	{
+		int pixelWidth	= 0;
+		int pixelHeight = 0;
+	};
+
 	/// <summary>
 	/// Singleton class
 	/// </summary>
@@ -96,6 +102,8 @@ namespace eng
 		RenderQueue&		GetRenderQueue();
 
 		const World&		GetWorld() const;
+
+		const Window&		GetWindow() const;
 		ActiveCamera&		GetMainCamera();
 	
 	private:
@@ -132,9 +140,15 @@ namespace eng
 		float m_timeInSeconds	= 0.0f;
 
 		///////////////////////////////////////////////////////
-		// Wolrd Features
+		// World Features
 		///////////////////////////////////////////////////////
 		World m_world;
+		///////////////////////////////////////////////////////
+		/// Window Features
+		///////////////////////////////////////////////////////
+		Window g_window;
+
+		static void OnEngineFrameBufferResize(GLFWwindow* resizedWindow, int newPixelsWidth, int newPixelsHeight);
 	};
 
 }
