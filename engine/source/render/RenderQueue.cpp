@@ -539,90 +539,96 @@ namespace eng
 		/// GUI
 		/////////////////////////////////////////////////////////////////
 		//ImGui::PushID("mag");
-		ImGui::Separator();
-		static int selectedCamera = 0;
-		static bool showCameraWindow = false;
-
-		const char* cameraNames[] = { "Camera 0", "Camera 1", "Camera 2" };
-		ImGui::Text("Camera Selection");
-
-		if (ImGui::BeginCombo("##camera", cameraNames[selectedCamera]))
+		ImGui::Text("%s mode", (Engine::GetInstance().GetPlayMode() ? "Play" : "Editor"));
+		ImGui::Text("Press TAB to enter/exit Play Mode");
+		if (!Engine::GetInstance().GetPlayMode())
 		{
-			for (int i = 0; i < 3; i++)
+			ImGui::Separator();
+			static int selectedCamera = 0;
+			static bool showCameraWindow = false;
+
+			//const char* cameraNames[] = { "Camera 0", "Camera 1", "Camera 2" };
+			//ImGui::Text("Camera Selection");
+
+			/*if (ImGui::BeginCombo("##camera", cameraNames[selectedCamera]))
 			{
-				bool isSelected = (selectedCamera == i);
-				if (ImGui::Selectable(cameraNames[i], isSelected))
-					selectedCamera = i;
-				if (isSelected)
-					ImGui::SetItemDefaultFocus();
+				for (int i = 0; i < 3; i++)
+				{
+					bool isSelected = (selectedCamera == i);
+					if (ImGui::Selectable(cameraNames[i], isSelected))
+						selectedCamera = i;
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}*/
+
+			// Button that toggles the separate camera window
+			if (ImGui::Button("Camera Settings..."))
+				showCameraWindow = !showCameraWindow;
+
+			// ... rest of your debug window ...
+			//ImGui::PopID();
+
+			// --- Camera settings window, drawn OUTSIDE the main window ---
+			if (showCameraWindow)
+			{
+				// Optional: set a default size the first time it appears
+				ImGui::SetNextWindowSize(ImVec2(320, 300), ImGuiCond_FirstUseEver);
+
+				// The bool* argument adds the X close button in the title bar
+				ImGui::Begin("Camera Settings", &showCameraWindow);
+
+				//ImGui::Text("Active: %s", cameraNames[selectedCamera]);
+				ImGui::Separator();
+				//ImGui::LabelText("Field of view",    "%.2f", pp.fov);
+				//ImGui::LabelText("Near plane",       "%.2f", pp.nearPlane);
+				//ImGui::LabelText("Far plane",        "%.2f", pp.farPlane);
+				//ImGui::LabelText("Viewport height",  "%d",   pp.height);
+				//ImGui::LabelText("Viewport width",   "%d",   pp.width);
+				ImGui::LabelText("Camera Pos Z",     "%.2f", camera->Position().z);
+
+				ImGui::Separator();
+				if (ImGui::Button("Close"))
+					showCameraWindow = false;
+
+				ImGui::End();
 			}
-			ImGui::EndCombo();
-		}
-
-		// Button that toggles the separate camera window
-		if (ImGui::Button("Camera Settings..."))
-			showCameraWindow = !showCameraWindow;
-
-		// ... rest of your debug window ...
-		//ImGui::PopID();
-
-		// --- Camera settings window, drawn OUTSIDE the main window ---
-		if (showCameraWindow)
-		{
-			// Optional: set a default size the first time it appears
-			ImGui::SetNextWindowSize(ImVec2(320, 300), ImGuiCond_FirstUseEver);
-
-			// The bool* argument adds the X close button in the title bar
-			ImGui::Begin("Camera Settings", &showCameraWindow);
-
-			ImGui::Text("Active: %s", cameraNames[selectedCamera]);
+			// --- Light direction controls ---
 			ImGui::Separator();
-			//ImGui::LabelText("Field of view",    "%.2f", pp.fov);
-			//ImGui::LabelText("Near plane",       "%.2f", pp.nearPlane);
-			//ImGui::LabelText("Far plane",        "%.2f", pp.farPlane);
-			//ImGui::LabelText("Viewport height",  "%d",   pp.height);
-			//ImGui::LabelText("Viewport width",   "%d",   pp.width);
-			ImGui::LabelText("Camera Pos Z",     "%.2f", camera->Position().z);
 
+			ImGui::Text("Light Settings");
+
+			// Option A: Three sliders — intuitive for direct axis control
+			if (ImGui::SliderFloat("Light Dir X", &gLightDir.x, -1.0f, 1.0f) ||
+				ImGui::SliderFloat("Light Dir Y", &gLightDir.y, -1.0f, 1.0f) ||
+				ImGui::SliderFloat("Light Dir Z", &gLightDir.z, -1.0f, 1.0f))
+			{
+				// Re-normalize after any component changes so it stays a unit vector
+				if (glm::length(gLightDir) > 0.0f)
+					gLightDir = glm::normalize(gLightDir);
+			}
+
+			// Option B: SliderFloat3 — compact single-line alternative to Option A
+			// if (ImGui::SliderFloat3("Light Direction", &lightDir.x, -1.0f, 1.0f))
+			//     lightDir = glm::normalize(lightDir);
+
+			// Live readout of the normalized result
+			ImGui::LabelText("Normalized Dir", "(%.2f, %.2f, %.2f)",
+							 gLightDir.x, gLightDir.y, gLightDir.z);
+
+			if (ImGui::Button("Reset Light"))
+				gLightDir = glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f));
+			///////////////////////////////////////////////////////////////////////////
+			// A button for reloading the shaders
+			///////////////////////////////////////////////////////////////////////////
 			ImGui::Separator();
-			if (ImGui::Button("Close"))
-				showCameraWindow = false;
+			if(ImGui::Button("Reload Shaders"))
+			{
+				loadShaders();
+				loadScreenSpaceShaders();
+			}
 
-			ImGui::End();
-		}
-		// --- Light direction controls ---
-		ImGui::Separator();
-
-		ImGui::Text("Light Settings");
-
-		// Option A: Three sliders — intuitive for direct axis control
-		if (ImGui::SliderFloat("Light Dir X", &gLightDir.x, -1.0f, 1.0f) ||
-			ImGui::SliderFloat("Light Dir Y", &gLightDir.y, -1.0f, 1.0f) ||
-			ImGui::SliderFloat("Light Dir Z", &gLightDir.z, -1.0f, 1.0f))
-		{
-			// Re-normalize after any component changes so it stays a unit vector
-			if (glm::length(gLightDir) > 0.0f)
-				gLightDir = glm::normalize(gLightDir);
-		}
-
-		// Option B: SliderFloat3 — compact single-line alternative to Option A
-		// if (ImGui::SliderFloat3("Light Direction", &lightDir.x, -1.0f, 1.0f))
-		//     lightDir = glm::normalize(lightDir);
-
-		// Live readout of the normalized result
-		ImGui::LabelText("Normalized Dir", "(%.2f, %.2f, %.2f)",
-						 gLightDir.x, gLightDir.y, gLightDir.z);
-
-		if (ImGui::Button("Reset Light"))
-			gLightDir = glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f));
-		///////////////////////////////////////////////////////////////////////////
-		// A button for reloading the shaders
-		///////////////////////////////////////////////////////////////////////////
-		ImGui::Separator();
-		if(ImGui::Button("Reload Shaders"))
-		{
-			loadShaders();
-			loadScreenSpaceShaders();
 		}
 
 		//ImGui::PopID();

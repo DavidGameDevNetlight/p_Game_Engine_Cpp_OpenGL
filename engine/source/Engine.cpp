@@ -6,6 +6,7 @@
 
 namespace eng
 {
+#if 0
 	void keyCallback(GLFWwindow* window, int key, int scan, int action, int mod)
 	{
 		auto& inputManager = Engine::GetInstance().GetInputManager();
@@ -19,6 +20,7 @@ namespace eng
 			inputManager.SetKeyPressed(key, false);
 		}
 	}
+#endif
 
 	Engine& Engine::GetInstance()
 	{
@@ -42,6 +44,14 @@ namespace eng
 			return false;
 
 		///////////////////////////////////////////////////////////////////////
+		/// GLFW Callbacks for the input handlers
+		///////////////////////////////////////////////////////////////////////
+		glfwSetKeyCallback(m_window, KeyCallback);
+		glfwSetFramebufferSizeCallback(m_window, OnEngineFrameBufferResize);
+		glfwSetMouseButtonCallback(m_window, MousePressedCallback);
+		glfwSetCursorPosCallback(m_window, MousePositionCallback);
+
+		///////////////////////////////////////////////////////////////////////
 		// ImGUI
 		///////////////////////////////////////////////////////////////////////
 		// Setup Dear ImGui context
@@ -52,16 +62,18 @@ namespace eng
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 		// Setup Platform/Renderer backends
-		ImGui_ImplGlfw_InitForOpenGL(m_window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+		// ImGui installs its own GLFW callbacks and chains any previously-registered callbacks.
+		// Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+		// install_callback=false, you will have to forward them manually
+		ImGui_ImplGlfw_InitForOpenGL(m_window, false);
 		ImGui_ImplOpenGL3_Init();
-		///////////////////////////////////////////////////////////////////////
-
-		glfwSetFramebufferSizeCallback(m_window, OnEngineFrameBufferResize);
 
 		// TODO added render queue init
 		GetRenderQueue().Init();
 		// TODO: define where to init. Ideally, there must be a distinction between a physical 3D camera during Gameplay, and the virtual "camera" that enables rendering on the Menu
 		InitializeCamera();
+
+		SetPlayMode(false);
 
 		return m_app->Init();
 	};
@@ -121,9 +133,12 @@ namespace eng
 			// (Your code calls glfwSwapBuffers() etc.)
 			///////////////////////////////////////////////////////////////////////
 
-			// Handle rendering
+			// Handle rendering, pass the back buffer with the rendered image to the front buffer
 			glfwSwapBuffers(m_window);
 
+			// Update inputManager state
+			if (GetInstance().m_isPlayMode)
+				GetInputManager().SetLastMousePosition(GetInputManager().GetCurrentMousePosition());
 		}
 	};
 	
@@ -177,6 +192,34 @@ namespace eng
 		return m_activeCamera;
 	}
 
+	void Engine::SetPlayMode(const bool enable)
+	{
+			const Window gameWindow = GetInstance().g_window;
+			const vec2 gameWindowCenter = {static_cast<int>(gameWindow.viewportWidth/2), static_cast<int>(gameWindow.viewportHeight/2)};
+
+		if (enable)
+		{
+			GetInstance().GetInputManager().ResetMousePosition(gameWindowCenter);
+			glfwSetCursorPos(m_window, gameWindowCenter.x, gameWindowCenter.y);
+			GetInstance().GetInputManager().UpdateMouseMovementDelta();
+
+			glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			glfwSetCursorPosCallback(m_window, MousePositionCallback);
+		}
+		else
+		{
+			glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			glfwSetCursorPosCallback(m_window, nullptr);
+		}
+
+		m_isPlayMode = enable;
+	}
+
+	bool Engine::GetPlayMode() const
+	{
+		return GetInstance().m_isPlayMode;
+	}
+
 	///////////////////////////////////////////////////////////////////
 	// Privates
 	///////////////////////////////////////////////////////////////////
@@ -211,9 +254,6 @@ namespace eng
 			glfwTerminate();
 			return false;
 		}
-
-		// Pass the callback function for the input handlers
-		glfwSetKeyCallback(m_window, keyCallback);
 
 		// Set the rendering context
 		glfwMakeContextCurrent(m_window);
@@ -281,13 +321,76 @@ namespace eng
 
 	}
 
+	//////////////////////////////////////////////////////////////
+	/// GLFW Callbacks
+	//////////////////////////////////////////////////////////////
+
 	void Engine::OnEngineFrameBufferResize(GLFWwindow* resizedWindow, int newPixelsWidth, int newPixelsHeight)
 	{
 		// It should call whatever holds the references to the list of FrameBuffers
 		GetInstance().g_window.pixelWidth	= newPixelsWidth;
 		GetInstance().g_window.pixelHeight	= newPixelsHeight;
 
+		glfwGetWindowSize(resizedWindow, &GetInstance().g_window.viewportWidth, &GetInstance().g_window.viewportHeight);
+
 		GetInstance().GetRenderQueue().ResizeRenderTargets(newPixelsWidth, newPixelsHeight);
+	}
+
+	void Engine::KeyCallback(GLFWwindow* window, int key, int scan, int action, int mod)
+	{
+		auto& inputManager = Engine::GetInstance().GetInputManager();
+
+		if (action == GLFW_PRESS)
+		{
+			// Checks for play mode toggling first
+			if (key == GLFW_KEY_TAB)
+				GetInstance().SetPlayMode(!GetInstance().m_isPlayMode); // Toggles state
+			else
+				inputManager.SetKeyPressed(key, true);
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			inputManager.SetKeyPressed(key, false);
+		}
+	}
+
+	void Engine::MousePressedCallback(GLFWwindow* window, const int button, const int action, int mods)
+	{
+
+		//Forwarding Events to ImGUI
+		ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+
+		if (!GetInstance().m_isPlayMode)
+			return;
+
+		auto& inputManager = GetInstance().GetInputManager();
+
+		if (action == GLFW_PRESS)
+			inputManager.SetMouseButtonPressed(button, true);
+		else if (action == GLFW_RELEASE)
+			inputManager.SetMouseButtonPressed(button, false);
+	}
+
+	void Engine::MousePositionCallback(GLFWwindow* window, const double xCoordinate, const double yCoordinate)
+	{
+		auto& inputManager = GetInstance().GetInputManager();
+		inputManager.SetLastMousePosition(inputManager.GetCurrentMousePosition()); // Store the last state
+		inputManager.SetCurrentMousePosition({static_cast<float>(xCoordinate), static_cast<float>(yCoordinate)}); // Update new state
+		// Compute delta
+		inputManager.UpdateMouseMovementDelta();
+
+		auto& activeCamera = GetInstance().GetMainCamera();
+		activeCamera.UpdateViewDirection(inputManager.GetMouseMovementDelta() * GetInstance().m_deltaTime  * 0.1f);
+		//std::cout << "Mouse Position{ X:" << static_cast<float>(xCoordinate) << " Y:"<<static_cast<float>(yCoordinate) << " }\n";
+
+		// Resetting the mouse position to avoid running out of room to rotate
+		const Window gameWindow = GetInstance().g_window;
+		const vec2 gameWindowCenter = {static_cast<int>(gameWindow.viewportWidth/2), static_cast<int>(gameWindow.viewportHeight/2)};
+
+		GetInstance().GetInputManager().ResetMousePosition(gameWindowCenter);
+		glfwSetCursorPos(window, gameWindowCenter.x, gameWindowCenter.y);
+		GetInstance().GetInputManager().UpdateMouseMovementDelta();
+
 	}
 
 

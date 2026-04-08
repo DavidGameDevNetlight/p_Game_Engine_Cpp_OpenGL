@@ -41,6 +41,8 @@ namespace eng
 	{
 		int pixelWidth	= 0;
 		int pixelHeight = 0;
+		int viewportWidth	= 0;
+		int viewportHeight	= 0;
 	};
 
 	/// <summary>
@@ -54,8 +56,8 @@ namespace eng
 
 		// The following deletions tell the compiler that this functions exits but should not be called, throwing an error
 		// This enforces the behaviour and use of the singleton
-		Engine(const Engine&) = delete;		// Copy constructor deleted
-		Engine(Engine&&) = delete;			// Move constructor deleted
+		Engine(const Engine&)	= delete;		// Copy constructor deleted
+		Engine(Engine&&)		= delete;		// Move constructor deleted
 
 		Engine& operator = (const Engine&) = delete;	// Copy operator deleted
 		Engine& operator = (Engine&&) = delete;			// Move operator deleted
@@ -105,15 +107,32 @@ namespace eng
 
 		const Window&		GetWindow() const;
 		ActiveCamera&		GetMainCamera();
-	
+
+
+		//////////////////////////////////////////////////////////////
+		/// GLFW Callbacks
+		//////////////////////////////////////////////////////////////
+		static void	OnEngineFrameBufferResize(GLFWwindow* resizedWindow, int newPixelsWidth, int newPixelsHeight);
+		static void KeyCallback(GLFWwindow* window, int key, int scan, int action, int mod);
+		static void MousePressedCallback(GLFWwindow* window, int button, int action, int mods);
+
+		/**
+		 This CallBack will return the position of the mouse on the entire computer screen while the application window is on focussed.
+		 If the mouse goes outside the boundaries of the window it will return negative values
+		 **/
+		static void MousePositionCallback(GLFWwindow* window, double xCoordinate, double yCoordinate);
+
+		void SetPlayMode(bool enable);
+		bool GetPlayMode() const;
+
 	private:
 		std::chrono::steady_clock::time_point m_lastTimePoint;
-		
+
 		Application*	m_app			= nullptr; // original member type: std::unique_ptr<Application>
 		GLFWwindow*		m_window		= nullptr;
-		
+
 		// The Engine will call InputManger() default constructor because its a friend class
-		InputManager	m_inputManager;	
+		InputManager	m_inputManager;
 
 		GraphicsAPI		m_graphicsApi;
 
@@ -138,7 +157,6 @@ namespace eng
 		///////////////////////////////////////////////////////
 		float m_deltaTime		= 0.0f;
 		float m_timeInSeconds	= 0.0f;
-
 		///////////////////////////////////////////////////////
 		// World Features
 		///////////////////////////////////////////////////////
@@ -147,8 +165,8 @@ namespace eng
 		/// Window Features
 		///////////////////////////////////////////////////////
 		Window g_window;
+		bool m_isPlayMode = false;
 
-		static void OnEngineFrameBufferResize(GLFWwindow* resizedWindow, int newPixelsWidth, int newPixelsHeight);
 	};
 
 }
