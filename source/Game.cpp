@@ -2,17 +2,22 @@
 #include <GLFW/glfw3.h>
 #include "eng.h"
 #include <fstream>
+#include "TestGameActor.h"
 #include <streambuf>
+
 using eng::Engine;
 
-bool Game::Init()
+
+namespace gameplayTest
 {
-    //////////////////////////////////////////////////////////////
+    void InitTest(Material& m_material, Mesh* m_mesh)
+    {
+        //////////////////////////////////////////////////////////////
     // Shader sources
     //////////////////////////////////////////////////////////////
-    /*
-    std::ifstream   vertexShaderFile("./shaders/debug_lambert_diffuse.vert");
-    std::ifstream   fragmentShaderFile("./shaders/debug_lambert_diffuse.frag");
+
+    std::ifstream   vertexShaderFile("./shaders/solid_color.vert");
+    std::ifstream   fragmentShaderFile("./shaders/solid_color.frag");
 
     if (!vertexShaderFile.is_open() || !fragmentShaderFile.is_open())
         std::cerr << "ERROR: Failed to open shaders files!\n";
@@ -60,31 +65,45 @@ bool Game::Init()
     size_t totalFComponentsCount    = RECT_VERTICES_DATA_SIZE;
 
     m_mesh = new eng::Mesh(vertexLayout, &rectangleVertices[0], totalFComponentsCount, &rectangleIndices[0], RECT_INDICES_SIZE);
-    */
+
+    }
+
+    void UpdateTest(float deltaTime, Material& m_material, Mesh* m_mesh)
+    {
+        auto& inputManager = Engine::GetInstance().GetInputManager();
+        if(inputManager.IsKeyPressed(GLFW_KEY_A))
+            std::cout << "Key[A]: Pressed! \n";
+
+        RenderCommand command;
+        command.material    = &m_material;
+        command.mesh        = m_mesh; // original m_mesh.get() to get from std::unique_ptr<eng::Mesh>
+
+        auto& renderQueue = Engine::GetInstance().GetRenderQueue();
+        renderQueue.Submit(command);
+    }
+
+    void DestroyTest(Material& m_material, Mesh* m_mesh)
+    {
+        delete m_mesh;
+        m_mesh = nullptr;
+    }
+}
+
+bool Game::Init()
+{
+    //gameplayTest::InitTest(m_material, m_mesh);
+    m_level.CreateGameActor<TestGameActor>("TestGameActor");
 	return true;
 }
 
 void Game::Update(float deltaTime)
 {
-	//std::cout << "Delta time: " << deltaTime << "\n";
-	/*
-	auto& inputManager = Engine::GetInstance().GetInputManager();
-	if(inputManager.IsKeyPressed(GLFW_KEY_A))
-		std::cout << "Key[A]: Pressed! \n";
-
-    eng::RenderCommand command;
-    command.material    = &m_material;
-    command.mesh        = m_mesh; // original m_mesh.get() to get from std::unique_ptr<eng::Mesh>
-
-    auto& renderQueue = Engine::GetInstance().GetRenderQueue();
-    renderQueue.Submit(command);
-    */
+	//gameplayTest::UpdateTest(deltaTime, m_material, m_mesh);
+    m_level.UpdateGameActors(deltaTime);
 }
 
 void Game::Destroy()
 {
-    /*
-    delete m_mesh;
-    m_mesh = nullptr;
-    */
+    //gameplayTest::DestroyTest(m_material, m_mesh);
+    m_level.Clear();
 }

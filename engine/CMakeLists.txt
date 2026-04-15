@@ -24,7 +24,10 @@ set(PROJECT_SOURCE_FILES
         source/render/RenderQueue.cpp
         source/render/Camera.cpp
         source/render/Camera.h
-
+        source/level/GameActor.h
+        source/level/GameActor.cpp
+        source/level/Level.cpp
+        source/level/Level.h
 
         # Render Helper
         source/render/renderHelper/Model.h

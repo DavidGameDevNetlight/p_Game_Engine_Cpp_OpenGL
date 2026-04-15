@@ -153,6 +153,7 @@ namespace eng
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 			///////////////////////////////////////////////////////////////////////
+			//delete[] m_cameras;
 
 			m_app->Destroy(); // logical clean up only
 			glfwTerminate();

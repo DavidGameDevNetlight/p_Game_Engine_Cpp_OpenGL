@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-
+set(CMAKE_CXX_STANDARD 20) # Added to use <concepts> and `require` for templates.
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Creates a variable called PROJECT_NAME
 project(GameDevelopmentProject)
 
@@ -8,6 +9,8 @@ set(PROJECT_SOURCE_FILES
     source/main.cpp
     source/Game.h
     source/Game.cpp
+    source/TestGameActor.cpp
+    source/TestGameActor.h
 )
 
 # ------------------------------------------------------- Shaders

@@ -467,21 +467,21 @@ namespace eng
 		renderhelper::render(sphereModel);
 
 		// original for(auto& command : m_renderCommands)
-		/*for (size_t i = 0; i < m_commandsCount; i++)
+		for (size_t i = 0; i < m_commandsCount; i++)
 		{
 			m_renderCommands[i].material->SetMaterialProjectionMatrix("projectionMatrix", projectionMatrix);
-			m_renderCommands[i].material->SetCameraPosition("cameraPosition", cameraPosition);
+			m_renderCommands[i].material->SetCameraPosition("cameraPosition", camPosition);
 
 			graphicsApi.BindMaterial( m_renderCommands[i].material );
-			graphicsApi.BindMesh( m_renderCommands[i].mesh);
+			graphicsApi.BindMesh( m_renderCommands[i].mesh );
 
-			graphicsApi.DrawMesh( m_renderCommands[i].mesh);
+			graphicsApi.DrawMesh( m_renderCommands[i].mesh );
 
 			m_usedCommands[i] = false;
 		}
 
 		// original m_renderCommands.clear() to clean up the std::vector<RenderCommand>
-		m_commandsCount = 0;*/
+		m_commandsCount = 0;
 		//glUseProgram(0);
 
 		// --- In your main debug window ---
