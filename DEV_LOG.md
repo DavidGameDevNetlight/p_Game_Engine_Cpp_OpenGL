@@ -117,6 +117,44 @@
 
 ---
 
+---
+
+## 2026-04-07 — Framebuffer Shutdown Crash & AddressSanitizer Debug Guide
+
+**Branch:** `debug_rendering`
+
+### BUG-14 · FrameBuffer — Texture Attachment Never Deleted (Shutdown Crash)
+- **File:** `engine/source/render/RenderQueue.cpp` / Framebuffer struct
+- **Status:** `[ ]`
+- **What:** The engine allocates a texture attachment via `glGenTextures` when creating the `FrameBuffer`, but the destructor (or shutdown path) never calls `glDeleteTextures`. At shutdown, some code path attempts to `free()` the same memory region twice — or frees memory it never owned — triggering the macOS malloc guard:
+  ```
+  malloc: *** error for object 0x104e17930: pointer being freed was not allocated
+  SIGABRT (exit code 134)
+  ```
+- **Root cause hypothesis:** The `FrameBuffer` struct is either copied (shallow) at some point, or the texture ID is stored in a raw pointer that gets `delete`d alongside the struct's other heap members — double-free on shutdown.
+- **Fix:** Ensure the destructor cleans up all GPU handles exactly once:
+  ```cpp
+  ~FrameBuffer() {
+      glDeleteFramebuffers(1, &m_fbo);
+      glDeleteTextures(1, &m_colorAttachment);
+      glDeleteRenderbuffers(1, &m_rbo); // if used
+  }
+  ```
+  If `FrameBuffer` is copyable anywhere, add a deleted copy constructor and copy-assignment, or implement a proper Rule of Five.
+
+### Debugging with AddressSanitizer (ASan) in CLion
+
+1. Open **CMakeLists.txt** and add the ASan flags to the target:
+   ```cmake
+   target_compile_options(GameDevelopmentProject PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+   target_link_options(GameDevelopmentProject PRIVATE -fsanitize=address)
+   ```
+2. In CLion: **Run → Edit Configurations** → select your target → **Environment variables**, add `ASAN_OPTIONS=halt_on_error=1:detect_leaks=1`.
+3. Rebuild and run. ASan will print the exact allocation site and free site for the offending address instead of a bare malloc pointer.
+4. To trace the specific address `0x104e17930` without ASan: in CLion set a **Symbolic Breakpoint** on `malloc_error_break` (**Run → View Breakpoints → + → Symbolic**), then inspect the call stack in the debugger at the moment of the abort.
+
+---
+
 ## Summary
 
 | ID | Severity | File | Issue |

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-
+set(CMAKE_CXX_STANDARD 20) # Added to use <concepts> and `require` for templates.
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Creates a variable called PROJECT_NAME
 project(GameDevelopmentProject)
 
@@ -8,6 +9,8 @@ set(PROJECT_SOURCE_FILES
     source/main.cpp
     source/Game.h
     source/Game.cpp
+    source/TestGameActor.cpp
+    source/TestGameActor.h
 )
 
 # ------------------------------------------------------- Shaders
@@ -23,6 +26,10 @@ source_group("Shaders" FILES ${SHADERS})
 include_directories(source)
 # Build executable target called GameDevelopmentProject
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_FILES} ${SHADERS})
+
+# --- ASan (remove before shipping) --- This allows to track heap allocation
+target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 
 # -------- GLEW and GLFW are included through the Engine module, so we link the Engine library
 

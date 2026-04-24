@@ -6,6 +6,11 @@ using namespace glm;
 
 namespace eng {
 
+    enum class ECameraType : uint8_t {
+        Static,
+        Dynamic,
+    };
+
     struct PerspectiveParams
     {
         int		width        = 0;
@@ -27,8 +32,10 @@ namespace eng {
         void InitializeCamera(const vec3& worldUp);
 
         void Update(float deltaTime);
+        void ResizeAspectRatio(const int width, const int height);
         void SetCameraId(const int id);
-        const int GetId() const;
+        int GetId() const;
+        ECameraType GetActiveCameraType() const;
 
         vec3& Position();
         vec3& Direction();
@@ -38,6 +45,8 @@ namespace eng {
         const mat4& Rotation();
         const mat4& ProjectionMatrix();
         const mat4& ViewMatrix();
+
+        void Rotate(const vec2& deltaMovement);
 
     private:
         PerspectiveParams	m_perspectiveParams; // This needs to be deep-copied
@@ -55,6 +64,8 @@ namespace eng {
 
         int     m_id = -1;
         char    m_code = '0';
+
+        ECameraType m_cameraType = ECameraType::Static;
     };
 
     class ActiveCamera
@@ -69,6 +80,7 @@ namespace eng {
         ActiveCamera& operator = (const ActiveCamera&&) = delete;
 
         void Update(float deltaTime);
+        void UpdateViewDirection(const vec2& deltaMovement);
 
         void SetActiveCamera(Camera& activeCamera);
         Camera* GetActiveCamera();

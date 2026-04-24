@@ -21,25 +21,35 @@ namespace eng
 		glUseProgram(m_shaderProgramId);
 	}
 
-	void  ShaderProgram::SetUniformFloat(const string& uniformName, float value)
+	void  ShaderProgram::SetFloat(const string& uniformName, float value)
 	{
-		auto uniformLocation = GetUniformLocation(uniformName);
+		const auto uniformLocation = GetUniformLocation(uniformName);
 		glUniform1f(uniformLocation, value);
 	}
 
-	void  ShaderProgram::SetUniform3Float(const string& uniformName, vec3 vector)
+	void  ShaderProgram::SetInt(const string& uniformName, int value)
 	{
-		auto uniformLocation = GetUniformLocation(uniformName);
+		const auto uniformLocation = GetUniformLocation(uniformName);
+		glUniform1i(uniformLocation, value);
+	}
+
+	void  ShaderProgram::SetVector3(const string& uniformName, vec3 vector)
+	{
+		const auto uniformLocation = GetUniformLocation(uniformName);
 		glUniform3f(uniformLocation, vector.x, vector.y, vector.z);
 	}
 
-
-	void ShaderProgram::SetProjectionMatrix(const string& matrixName, mat4 matrix)
+	void ShaderProgram::SetMatrix(const string& matrixName, mat4 matrix)
 	{
-		auto uniformLocation = GetUniformLocation(matrixName);
+		const auto uniformLocation = GetUniformLocation(matrixName);
 		glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0].x);
 	}
 
+	void ShaderProgram::SetCameraPosition(const string& cameraName, vec3 position)
+	{
+		const auto uniformLocation = GetUniformLocation(cameraName);
+		glUniform3f(uniformLocation, position.x, position.y, position.z);
+	}
 
 	GLint ShaderProgram::GetUniformLocation(const string& uniformName)
 	{

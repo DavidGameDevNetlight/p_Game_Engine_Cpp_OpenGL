@@ -34,6 +34,8 @@ void main() {
     // Use these to lookup the color in the environment map
     vec2 lookup = vec2(phi / (2.0 * PI), 1 - theta / PI);
     FragColor = environment_multiplier * texture(environmentMap, lookup);
+
+    // Debugging options
     //FragColor =  texture(environmentMap, vec2(1.0,1.0));
     //FragColor = vec4(0.0, 1.0, 0.0, 1.0);
     //FragColor = vec4(normalize(pixel_world_pos.xyz), 1);

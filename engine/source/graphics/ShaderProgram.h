@@ -33,9 +33,20 @@ namespace eng
 		~ShaderProgram();
 		
 		void Bind() const;
-		void SetUniformFloat(		const string& uniformName,	float	value);
-		void SetUniform3Float(		const string& uniformName,	vec3	value);
-		void SetProjectionMatrix(	const string& matrixName,	mat4	matrix);
+
+		//////////////////////////////////////////////////////////////
+		// Setting Uniforms in the shaders
+		//////////////////////////////////////////////////////////////
+		void SetFloat(				const string& uniformName,	float	value);
+		void SetInt(				const string& uniformName,	int		value);
+		void SetVector3(			const string& uniformName,	vec3	value);
+		void SetMatrix(				const string& matrixName,	mat4	matrix);
+		void SetCameraPosition(		const string& cameraName = "camera_position",	vec3	position = vec3(0.0f));
+
+		//////////////////////////////////////////////////////////////
+		// Setting Textures
+		//////////////////////////////////////////////////////////////
+		void BindTexture();
 
 		const GLuint GetProgramId() const;
 

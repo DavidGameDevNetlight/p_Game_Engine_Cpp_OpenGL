@@ -15,11 +15,11 @@ namespace eng
 
 	class Camera;
 
-	// TODO print the size of one RenderCommand, it should be 16 bytes, as it container only 2 pointers
 	struct RenderCommand
 	{
-		Mesh*		mesh		= nullptr;
-		Material*	material	= nullptr;
+		Mesh*		mesh			= nullptr;
+		Material*	material		= nullptr;
+		mat4*		modelMatrix		= nullptr;
 	};
 
 	//////////////////////////////////////////////////////////////
@@ -40,7 +40,7 @@ namespace eng
 		width(0),
 		height(0),
 		isCompleted(false){}
-		~FrameBuffer() = default;
+		~FrameBuffer();
 		void InitializeFrameBuffer(const int viewPortWidth, const int viewPortHeight);
 		void GenerateColorBuffer(const int viewPortWidth, const int viewPortHeight);
 		void GenerateDepthBuffer(const int viewPortWidth, const int viewPortHeight);
@@ -67,22 +67,12 @@ namespace eng
 		//////////////////////////////////////////////////////////////
 		// Temporal public variables
 		//////////////////////////////////////////////////////////////
-		//vec3	worldUp				= vec3(0.0f, 1.0f, 0.0f);
-		//vec3	worldRight			= vec3(1.0f, 0.0f, 0.0f);
-		//vec3	worldForward		= vec3(0.0f, 0.0f, 1.0f);
-
-		//ivec2	prevMouseCoords 	= { -1, -1 };
-		//bool	isMouseDragging 	= false;
-		// Camera params
 		Camera* camera = nullptr;
-		//vec3	cameraPosition 		= vec3(15.0f, 15.0f, 15.0f);
-		//vec3	cameraDirection		= vec3(-1.0f, -1.0f, -1.0f);
-		//mat4	T					= mat4(1.0f);
-		//mat4	R					= mat4(1.0f);
 
-		//PerspectiveParamss	pp		= { 45.0f, 1280, 720, 0.1f, 300.0f };
-		//int 				old_w 	= 1280;
-		//int 				old_h 	= 720;
+		//////////////////////////////////////////////////////////////
+		/// Framebuffers management
+		//////////////////////////////////////////////////////////////
+		void ResizeRenderTargets(const int newPixelsWidth, const int newPixelsHeight);
 
 	private:
 		static const size_t RENDER_COMMANDS_SIZE = 100;
@@ -94,6 +84,11 @@ namespace eng
 		bool			m_usedCommands[RENDER_COMMANDS_SIZE]	= {};
 		size_t			m_commandsCount							= 0;
 
+		//////////////////////////////////////////////////////////////
+		/// Framebuffers management
+		//////////////////////////////////////////////////////////////
+		static constexpr	size_t FRAME_BUFFERS_COUNT			= 1;
+		FrameBuffer*		m_frameBuffers						= nullptr;
 	};
 }
 

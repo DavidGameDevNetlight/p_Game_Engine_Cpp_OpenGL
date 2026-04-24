@@ -17,6 +17,9 @@ vec4 textureRect(in sampler2D tex, vec2 rectangleCoord)
 }
 
 void main() {
-    FragColor = textureRect(sceneTexture, gl_FragCoord.xy);
-    //FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    vec4 colorTexture = textureRect(sceneTexture, gl_FragCoord.xy);
+    float averageColor = (colorTexture.r + colorTexture.g + colorTexture.b) / 3.0;
+    //FragColor = vec4(vec3(averageColor), 1);
+    FragColor = colorTexture;
+    //vec4(0.0, 1.0, 0.0, 1.0);
 }
