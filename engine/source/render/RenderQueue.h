@@ -15,11 +15,11 @@ namespace eng
 
 	class Camera;
 
-	// TODO print the size of one RenderCommand, it should be 16 bytes, as it container only 2 pointers
 	struct RenderCommand
 	{
-		Mesh*		mesh		= nullptr;
-		Material*	material	= nullptr;
+		Mesh*		mesh			= nullptr;
+		Material*	material		= nullptr;
+		mat4*		modelMatrix		= nullptr;
 	};
 
 	//////////////////////////////////////////////////////////////

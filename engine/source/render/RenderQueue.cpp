@@ -254,8 +254,10 @@ namespace eng
 
 		loadShaders();
 		loadScreenSpaceShaders();
-		sphereModel = renderhelper::loadModelFromOBJ("./assets/sphere.obj");
+		sphereModel = renderhelper::loadModelFromOBJ("./assets/GameActor.obj");
 		std::cout << "The model: " << sphereModel->m_filename << " was loaded correctly \n";
+		std::cout << "The model vertices: " << sphereModel->m_positions.size() << " positions \n";
+
 		std::cout << "Materials loaded: " << sphereModel->m_materials.size() << "\n";
 
 		constexpr	int		ELEMENTS_COUNT = 8;
@@ -467,13 +469,17 @@ namespace eng
 		renderhelper::render(sphereModel);
 
 		// original for(auto& command : m_renderCommands)
+		ShaderProgram* shader;
 		for (size_t i = 0; i < m_commandsCount; i++)
 		{
-			m_renderCommands[i].material->SetMaterialProjectionMatrix("projectionMatrix", projectionMatrix);
-			m_renderCommands[i].material->SetCameraPosition("cameraPosition", camPosition);
+			// TODO: Configur the Shader uniforms
+			shader = m_renderCommands[i].material->GetShaderProgram();
+			shader->SetCameraPosition("cameraPosition", camPosition);
+			shader->SetMatrix("projectionMatrix", projectionMatrix);
 
 			graphicsApi.BindMaterial( m_renderCommands[i].material );
 			graphicsApi.BindMesh( m_renderCommands[i].mesh );
+			//TODO: Bind textures if needed
 
 			graphicsApi.DrawMesh( m_renderCommands[i].mesh );
 

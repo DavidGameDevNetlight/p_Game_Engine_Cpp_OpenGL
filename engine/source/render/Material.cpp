@@ -13,16 +13,21 @@ namespace eng
 		m_shaderProgram = shaderProgram;	// Takes ownership of the memory
 	}
 
+	ShaderProgram* Material::GetShaderProgram() const
+	{
+		return m_shaderProgram;
+	}
+
 	void Material::SetMaterialProjectionMatrix(const string& matrixName, const mat4& matrix) const
 	{
 		if (!m_shaderProgram) return;
-		m_shaderProgram->SetProjectionMatrix(matrixName,matrix);
+		m_shaderProgram->SetMatrix(matrixName,matrix);
 	}
 
 	void Material::SetCameraPosition(const string& cameraName, const vec3& position) const
 	{
 		if (!m_shaderProgram) return;
-		m_shaderProgram->SetUniform3Float(cameraName, position);
+		m_shaderProgram->SetVector3(cameraName, position);
 	}
 
 
@@ -39,7 +44,7 @@ namespace eng
 		m_shaderProgram->Bind();
 		for (const auto& iterator : m_parameters)
 		{
-			m_shaderProgram->SetUniformFloat(iterator.first, iterator.second);
+			m_shaderProgram->SetFloat(iterator.first, iterator.second);
 		}
 	}
 

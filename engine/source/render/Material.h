@@ -21,6 +21,8 @@ namespace eng
 		~Material();
 		// original parameter: const std::shared_ptr<ShaderProgram>& shaderProgram
 		void SetShaderProgram(ShaderProgram* shaderProgram);
+		[[nodiscard]] ShaderProgram* GetShaderProgram() const;
+
 		void SetMaterialParameters(const string& paramName, float value);
 		void SetMaterialProjectionMatrix(const string& matrixName, const mat4& matrix) const;
 		void SetCameraPosition(const string& cameraName, const vec3& position) const;
